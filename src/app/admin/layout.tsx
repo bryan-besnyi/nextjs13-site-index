@@ -3,8 +3,6 @@ import Link from 'next/link'
 
 export const metadata = {
   title: 'Admin Area | Site Index',
-  description:
-    'Browse and Discover Sites on SMCCD colleges, College of San Mateo, Cañada College, and Skyline College!',
 }
 
 const Sidebar = () => {
@@ -29,11 +27,13 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  // if no session, display login button
+  // if session, display logout button
   return (
     <Provider>
       <div className="flex flex-row">
         <Sidebar />
-        <main class="w-full px-10">{children}</main>
+        <main className="w-full">{children}</main>
       </div>
     </Provider>
   )

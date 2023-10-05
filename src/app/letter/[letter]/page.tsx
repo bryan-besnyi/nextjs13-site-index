@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@/lib/prisma'
 
 export default async function Page({ params }: { params: { letter: string } }) {
   if (params.letter.length !== 1) {

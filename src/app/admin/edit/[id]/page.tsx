@@ -1,10 +1,15 @@
-import UpdateIndexItem from '@/app/components/UpdateIndexItem'
+import { getIndexItemById } from '@/lib/indexItems'
+import UpdateIndexItemForm from '@/components/UpdateIndexItemForm'
 
-export default async function Page({ params: { id } }: Props) {
+const Page = ({ id }) => {
+  const indexItem = getIndexItemById(id)
+  console.log(indexItem)
   return (
-    <div className="prose">
+    <div>
       <h1>Edit Index Item</h1>
-      <UpdateIndexItem id={id} />
+      <UpdateIndexItemForm indexItem={indexItem} />
     </div>
   )
 }
+
+export default Page

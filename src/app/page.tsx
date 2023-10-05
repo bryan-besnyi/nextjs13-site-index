@@ -1,10 +1,11 @@
-import { getIndexItems } from '@/lib/actions'
+import { getIndexItems } from '@/lib/indexItems'
+import IndexItem from '@/components/IndexItem'
 
 export default async function Home() {
   const { indexItems } = await getIndexItems()
 
   return (
-    <div>
+    <>
       <section className="py-8 bg-gray-100">
         <h1 className="sr-only">Site Index</h1>
         <div className="max-w-3xl p-8 mx-auto border rounded-lg shadow-lg border-blue-50 bg-gray-50">
@@ -52,11 +53,15 @@ export default async function Home() {
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center">
                     <input
+                      id="show-all"
                       name="notification-method"
                       type="radio"
                       className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
                     />
-                    <label className="block ml-2 text-sm font-medium leading-6 text-gray-900">
+                    <label
+                      htmlFor="show-all"
+                      className="block ml-2 text-sm font-medium leading-6 text-gray-900"
+                    >
                       Show All
                     </label>
                   </div>
@@ -109,57 +114,14 @@ export default async function Home() {
       <section className="container flow-root py-8 mx-auto">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg"></div>
-            <table className="min-w-full divide-y divide-gray-300">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 text-center"
-                  >
-                    ID
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Item Title
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Item Letter
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Item URL
-                  </th>
-                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Campus
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {indexItems?.map((indexItem) => (
-                  <tr key={indexItem.id}>
-                    <td className="px-3 py-2 text-sm text-center text-gray-800 whitespace-nowrap">
-                      {indexItem.id}
-                    </td>
-                    <td className="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">
-                      {indexItem.title}
-                    </td>
-                    <td className="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">
-                      {indexItem.letter.toUpperCase()}
-                    </td>
-                    <td className="text-indigo-800">
-                      <a className="ml-3" href={indexItem.url}>
-                        {indexItem.url}
-                      </a>
-                    </td>
-                    <td className="px-3 py-2 text-sm font-medium text-gray-800 whitespace-nowrap">
-                      {indexItem.campus}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul className="max-w-3xl mx-auto">
+              {indexItems?.map((indexItem) => (
+                <IndexItem key={indexItem.id} indexItem={indexItem} />
+              ))}
+            </ul>
           </div>
         </div>
       </section>
-    </div>
+    </>
   )
 }

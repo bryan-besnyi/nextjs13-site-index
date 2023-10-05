@@ -1,10 +1,10 @@
-import AddIndexItem from '@/app/components/AddIndexItem'
+import NewIndexItemForm from '../../components/NewIndexItemForm'
 
 export default function Page() {
   return (
-    <div className="prose">
+    <div>
       <h1 className="mt-5">Admin</h1>
-      <AddIndexItem />
+      <NewIndexItemForm />
     </div>
   )
 }
