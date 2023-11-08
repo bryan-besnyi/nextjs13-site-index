@@ -22,14 +22,17 @@ export default async function AdminPage() {
               Item Letter
             </th>
             <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-              Item URL
+              Item Campus
             </th>
             <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-              Campus
+              <span className="sr-only">Edit</span>
+            </th>
+            <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+              <span className="sr-only">Delete</span>
             </th>
           </tr>
         </thead>
-        {indexItems.map((item) => (
+        {indexItems?.map((item) => (
           <tr key={item.id}>
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="text-sm font-medium text-gray-900">{item.id}</div>
@@ -42,6 +45,11 @@ export default async function AdminPage() {
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="text-sm font-medium text-gray-900">
                 {item.letter.toUpperCase()}
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="text-sm font-medium text-gray-900">
+                {item.campus}
               </div>
             </td>
             <td>

@@ -1,72 +1,30 @@
 'use client'
-import { useState, useEffect } from 'react'
+
 import { updateIndexItemAction } from '../_actions'
 
-const UpdateIndexItemForm = ({ indexItem }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    letter: '',
-    url: '',
-    campus: '',
-  })
+const UpdateIndexItemForm = () => {
+  async function action(event: React.FormEvent<HTMLFormElement>) {
+    const title = data.get('title')
+    if (typeof title !== 'string' || !title) return
+    const url = data.get('url')
+    if (typeof url !== 'string' || !url) return
+    const letter = data.get('letter')
+    if (typeof letter !== 'string' || !letter) return
+    const campus = data.get('campus')
+    if (typeof campus !== 'string' || !campus) return
 
-  useEffect(() => {
-    setFormData({
-      title: indexItem.title,
-      letter: indexItem.letter,
-      url: indexItem.url,
-      campus: indexItem.campus,
-    })
-  }, [indexItem])
-
-  const handleChange = (event) => {
-    const { name, value } = event.target
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      [name]: value,
-    }))
-  }
-
-  const handleSubmit = async (event) => {
-    event.preventDefault() // Prevent form submission
-
-    const { title, url, letter, campus } = formData
-
-    if (!title || !url || !letter || !campus) return
-
-    await updateIndexItemAction(indexItem.id, title, url, letter, campus)
+    await updateIndexItemAction(id, title, url, letter, campus)
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        name="title"
-        value={formData.title}
-        onChange={handleChange}
-        className="border-2"
-      />
-      <input
-        type="text"
-        name="letter"
-        value={formData.letter}
-        onChange={handleChange}
-        className="border-2"
-      />
-      <input
-        type="text"
-        name="url"
-        value={formData.url}
-        onChange={handleChange}
-        className="border-2"
-      />
-      <input
-        type="text"
-        name="campus"
-        value={formData.campus}
-        onChange={handleChange}
-        className="border-2"
-      />
+    <form action={action}>
+      <input type="text" name="title" className="border-2" />
+      <input type="text" name="letter" className="border-2" />
+      <input type="text" name="url" className="border-2" />
+      <select className="border-2">
+        <option value="district-office">District Office</option>
+        <option value="college-of-san-mateo">College of San Mateo</option>
+      </select>
       <button type="submit">Update Index Item</button>
     </form>
   )

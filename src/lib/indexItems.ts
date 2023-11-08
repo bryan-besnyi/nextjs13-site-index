@@ -10,7 +10,7 @@ export async function getIndexItems() {
   }
 }
 
-export async function getIndexItemById(id: number) {
+export async function getIndexItemById(id: string) {
   try {
     const indexItem = await prisma.indexItem.findUnique({
       where: { id: id }
@@ -49,6 +49,17 @@ export async function updateIndexItem(id: number, title: string, url: string, le
       }
     });
     return { updatedItem };
+  } catch (error) {
+    return { error };
+  }
+}
+
+export async function deleteIndexItem(id: number) {
+  try {
+    const deletedItem = await prisma.indexItem.delete({
+      where: { id: id }
+    });
+    return { deletedItem };
   } catch (error) {
     return { error };
   }

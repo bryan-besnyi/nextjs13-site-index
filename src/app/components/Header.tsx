@@ -50,15 +50,9 @@ const Header = () => {
               {/* If a user session exists, show "logout", if it does not, show "login" */}
               <Link
                 className="hover:underline hover:text-indigo-200"
-                href="/admin/"
+                href="/api/auth/signin"
               >
                 Login
-              </Link>
-              <Link
-                className="hover:underline hover:text-indigo-200"
-                href="/admin/logout"
-              >
-                Logout
               </Link>
             </div>
           </li>
