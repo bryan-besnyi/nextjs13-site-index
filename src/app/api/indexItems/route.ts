@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import type { NextApiRequest, NextApiResponse } from 'next';
+
 import { NextResponse } from "next/server";
 import { IncomingMessage } from 'http';
 
 const prisma = new PrismaClient();
 
-export async function GET(req: IncomingMessage) {
+export async function GET(req: NextApiRequest, res: NextApiResponse) {
    // Get the query params and lowercase them
     const { campus, letter } = req.url.split("?")[1] ? Object.fromEntries(new URLSearchParams(req.url.split("?")[1])) : { campus: null, letter: null };
 
