@@ -87,11 +87,15 @@ export default async function Home() {
                   </div>
                   <div className="flex items-center">
                     <input
+                      id="Sky"
                       name="notification-method"
                       type="radio"
                       className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
                     />
-                    <label className="block ml-2 text-sm font-medium leading-6 text-gray-900">
+                    <label
+                      htmlFor="Sky"
+                      className="block ml-2 text-sm font-medium leading-6 text-gray-900"
+                    >
                       Skyline College
                     </label>
                   </div>

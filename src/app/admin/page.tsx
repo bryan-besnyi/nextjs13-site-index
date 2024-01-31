@@ -1,4 +1,5 @@
 import { getIndexItems } from '@/lib/indexItems'
+import Link from 'next/link'
 
 export default async function AdminPage() {
   const { indexItems } = await getIndexItems()
@@ -53,7 +54,7 @@ export default async function AdminPage() {
               </div>
             </td>
             <td>
-              <a href={`/admin/edit/${item.id}`}>Edit</a>
+              <Link href={`/admin/edit/${item.id}`}>Edit</Link>
             </td>
             <td className="font-semibold text-red-400 underline">Delete</td>
           </tr>

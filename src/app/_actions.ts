@@ -23,3 +23,14 @@ export async function updateIndexItemAction(id: number, title: string, url: stri
     return { updatedItem };
   }
 }
+
+// export async function deleteIndexItemAction(id: number) {
+//   const { deletedItem, error } = await deleteIndexItem(id);
+//   if (error) {
+//     console.error(error);
+//     return { error };
+//   } else {
+//     revalidatePath('/indexItems');
+//     return { deletedItem };
+//   }
+// }

@@ -1,4 +1,3 @@
-import { updateIndexItem } from '@/lib/indexItems'
 import prisma from '@/lib/prisma'
 
 export default async function AdminEditPage({ params: { id } }) {
@@ -8,12 +7,45 @@ export default async function AdminEditPage({ params: { id } }) {
   if (!indexItem) {
     return <h1 className="text-red-700">No Item Found</h1>
   }
+
+  // This action function must be defined inline with "use server" directive at the top of the function.
+  async function updateIndexItemAction(formData) {
+    'use server'
+
+    const title = formData.get('title')
+    const url = formData.get('url')
+    const letter = formData.get('letter')
+    const campus = formData.get('campus')
+
+    await prisma.indexItem.update({
+      where: { id: indexItem.id },
+      data: {
+        title,
+        url,
+        letter,
+        campus,
+      },
+    })
+
+    // Redirect after successful update
+    return new Response(null, {
+      status: 303,
+      headers: {
+        Location: `/admin/success-page`, // Adjust as necessary
+      },
+    })
+  }
+
   return (
     <div className="p-5">
       <h1 className="mb-3 text-xl">
         Edit Index Item: {indexItem.title} - (ID: {id}){' '}
       </h1>
-      <form action={updateIndexItem} className="flex flex-col w-64">
+      <form
+        method="post"
+        action={updateIndexItemAction}
+        className="flex flex-col w-64"
+      >
         <label htmlFor="title">Title</label>
         <input
           id="title"
@@ -28,7 +60,12 @@ export default async function AdminEditPage({ params: { id } }) {
         <label className="mt-3" htmlFor="letter">
           Letter
         </label>
-        <input id="letter" type="text" defaultValue={indexItem.letter} />
+        <input
+          id="letter"
+          type="text"
+          name="letter"
+          defaultValue={indexItem.letter}
+        />
         <label className="mt-3" htmlFor="campus">
           Campus
         </label>

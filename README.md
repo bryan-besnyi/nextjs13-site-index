@@ -17,3 +17,10 @@ IndexItem {EDIT BUTTON} {DELETE BUTTON}
 * [Usage](#usage)
 
 
+
+
+TODOS:
+- Clear Form after submission
+- Toast to show successful submit
+- Delete modal, type the name of item to remove
+- Move search box into admin instead of front-end

@@ -17,7 +17,11 @@ const NewIndexItemForm = () => {
   }
 
   return (
-    <form className="flex flex-col max-w-3xl gap-3" action={action}>
+    <form
+      className="flex flex-col max-w-2xl gap-3"
+      method="post"
+      action={action}
+    >
       <label
         htmlFor="title"
         className="block text-sm font-medium leading-6 text-gray-900"
@@ -28,28 +32,39 @@ const NewIndexItemForm = () => {
         id="title"
         type="text"
         name="title"
-        className="shadow-sm border-1"
+        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
       />
-      <label className="mt-3" htmlFor="letter">
+      <label
+        className="block mt-3 text-sm font-medium leading-6 text-gray-900"
+        htmlFor="letter"
+      >
         Letter
       </label>
       <input
         id="letter"
         type="text"
         name="letter"
-        className="shadow-sm border-1"
+        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
       />
-      <label className="mt-3" htmlFor="url">
+      <label
+        className="block mt-3 text-sm font-medium leading-6 text-gray-900"
+        htmlFor="url"
+      >
         URL
       </label>
-      <input id="url" type="text" name="url" className="shadow-sm border-1" />
+      <input
+        id="url"
+        type="text"
+        name="url"
+        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+      />
       <label className="mt-3" htmlFor="campus">
         Campus
       </label>
       <select
         id="campus"
         name="campus"
-        className="shadow-sm border-1"
+        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
         required={true}
       >
         <option value="CAN">Cañada College</option>
@@ -57,12 +72,20 @@ const NewIndexItemForm = () => {
         <option value="DO">District Office</option>
         <option value="SKY">Skyline College</option>
       </select>
-      <button
-        type="submit"
-        className="w-64 px-3 py-2 mt-5 text-white bg-indigo-800 rounded-md shadow-md"
-      >
-        Add Index Item
-      </button>
+      <div className="flex flex-row gap-3 mt-5">
+        <button
+          type="submit"
+          className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+        >
+          Add Index Item
+        </button>
+        <button
+          type="submit"
+          className="rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+        >
+          Add Index Item and Add Another
+        </button>
+      </div>
     </form>
   )
 }
