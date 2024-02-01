@@ -1,57 +1,64 @@
 import { PrismaClient } from '@prisma/client';
-import type { NextApiRequest, NextApiResponse } from 'next';
-
-import { NextResponse } from "next/server";
-import { IncomingMessage } from 'http';
+import { NextRequest, NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
-export async function GET(req: NextApiRequest, res: NextApiResponse) {
-   // Get the query params and lowercase them
-    const { campus, letter } = req.url.split("?")[1] ? Object.fromEntries(new URLSearchParams(req.url.split("?")[1])) : { campus: null, letter: null };
+export async function GET(req: NextRequest) {
+    try {
+        // Parse query parameters directly from req.nextUrl
+        const url = req.nextUrl;
+        const campus = url.searchParams.get('campus');
+        const letter = url.searchParams.get('letter');
 
+        const conditions: { campus?: string; letter?: string } = {};
+        if (campus) conditions.campus = campus;
+        if (letter) conditions.letter = letter;
 
-    let indexItems = null;
+        const indexItems = await prisma.indexItem.findMany({
+            where: conditions,
+        });
 
-    if (campus && letter) {
-      indexItems = await prisma.indexItem.findMany({
-        where: {
-          campus: campus,
-          letter: letter,
-        },
-      });
-    } else if (campus) {
-      indexItems = await prisma.indexItem.findMany({
-        where: {
-          campus: campus,
-        },
-      });
-    } else if (letter) {
-      indexItems = await prisma.indexItem.findMany({
-        where: {
-          letter: letter,
-        },
-      });
-    } else {
-      indexItems = await prisma.indexItem.findMany();
+        // Use NextResponse to return JSON data
+        return new NextResponse(JSON.stringify(indexItems), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+    } catch (error) {
+        console.error('Request error', error);
+        return new NextResponse(JSON.stringify({ error: 'Error fetching data' }), {
+            status: 500,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
     }
-
-    return NextResponse.json(indexItems);
 }
 
-export async function POST(req: Request) {
-  const { title, letter, url, campus } = await req.json();
+export async function POST(req: NextRequest, res: NextResponse) {
+  try {
+    const { title, letter, url, campus } = await req.json(); // Parse JSON data from request body
 
-  const newIndexItem = await prisma.indexItem.create({
-    data: {
-      title: title,
-      letter: letter,
-      url: url,
-      campus: campus,
-    },
-  });
+    const newIndexItem = await prisma.indexItem.create({
+      data: {
+        title: title,
+        letter: letter,
+        url: url,
+        campus: campus,
+      },
+    });
 
-  return Response.json(newIndexItem);
+    return new NextResponse(JSON.stringify(newIndexItem), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  } catch (error) {
+    console.error('Error creating index item', error);
+    return new NextResponse(JSON.stringify({ error: 'Error creating new index item' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
 }
 
 export async function PATCH(
