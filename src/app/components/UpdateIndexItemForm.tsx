@@ -4,6 +4,8 @@ import { updateIndexItemAction } from '../_actions'
 
 const UpdateIndexItemForm = () => {
   async function action(event: React.FormEvent<HTMLFormElement>) {
+    const data = new FormData(event.currentTarget)
+    const id = Number(data.get('id'))
     const title = data.get('title')
     if (typeof title !== 'string' || !title) return
     const url = data.get('url')
@@ -17,11 +19,15 @@ const UpdateIndexItemForm = () => {
   }
 
   return (
-    <form action={action}>
-      <input type="text" name="title" className="border-2" />
-      <input type="text" name="letter" className="border-2" />
-      <input type="text" name="url" className="border-2" />
-      <select className="border-2">
+    <form action="/api/updateIndexItem" method="POST" onSubmit={action}>
+      <label htmlFor="title">Title</label>
+      <input type="text" name="title" id="title" className="border-2" />
+      <label htmlFor="letter">Letter</label>
+      <input type="text" name="letter" id="letter" className="border-2" />
+      <label htmlFor="url">URL</label>
+      <input type="text" name="url" id="url" className="border-2" />
+      <label htmlFor="campus">Campus</label>
+      <select name="campus" id="campus" className="border-2">
         <option value="district-office">District Office</option>
         <option value="college-of-san-mateo">College of San Mateo</option>
       </select>

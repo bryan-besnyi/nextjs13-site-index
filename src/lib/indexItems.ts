@@ -13,7 +13,7 @@ export async function getIndexItems() {
 export async function getIndexItemById(id: string) {
   try {
     const indexItem = await prisma.indexItem.findUnique({
-      where: { id: id }
+      where: { id: Number(id) }
     });
     return { indexItem };
   } catch (error) {
@@ -40,7 +40,7 @@ export async function createIndexItem(title: string, url: string, letter: string
 export async function updateIndexItem(id: number, title: string, url: string, letter: string, campus: string) {
   try {
     const updatedItem = await prisma.indexItem.update({
-      where: { id: id },
+      where: { id: Number(id) },
       data: {
         title: title,
         url: url,

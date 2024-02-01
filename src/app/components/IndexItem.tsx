@@ -1,6 +1,12 @@
 type IndexItemProps = {
-  indexItem: IndexItem
+  indexItem: {
+    id: number
+    title: string
+    url: string
+    campus: string
+  }
 }
+
 export default function IndexItem({ indexItem }: IndexItemProps) {
   return (
     <li
