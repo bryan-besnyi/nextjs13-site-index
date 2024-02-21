@@ -57,15 +57,6 @@ const Header = () => {
             </div>
           </li>
         </ul>
-        <ul className="flex justify-between px-12 py-2 bg-indigo-900">
-          {Letters.map((letter) => (
-            <li key={letter}>
-              <Link className="text-white uppercase" href={`/letter/${letter}`}>
-                {letter}
-              </Link>
-            </li>
-          ))}
-        </ul>
       </nav>
     </header>
   )
