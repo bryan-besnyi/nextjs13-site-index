@@ -1,131 +1,94 @@
 import { getIndexItems } from '@/lib/indexItems'
-import IndexItem from '@/components/IndexItem'
+import OneLoginSignInButton from './components/SignInButton'
 
+const Card = ({ children }) => (
+  <div className="p-4 border border-gray-300 rounded-md shadow-md bg-white/80 backdrop-blur-md">
+    {children}
+  </div>
+)
+
+const Button = ({ children, color = 'default' }) => {
+  let bgColor, hoverBgColor, focusRingColor
+
+  if (color === 'csm') {
+    bgColor = 'bg-blue-600'
+    hoverBgColor = 'hover:bg-blue-700'
+    focusRingColor = 'focus:ring-blue-600'
+  } else if (color === 'can') {
+    bgColor = 'bg-green-600'
+    hoverBgColor = 'hover:bg-green-700'
+    focusRingColor = 'focus:ring-green-600'
+  } else if (color === 'sky') {
+    bgColor = 'bg-red-600'
+    hoverBgColor = 'hover:bg-red-700'
+    focusRingColor = 'focus:ring-red-600'
+  } else {
+    bgColor = 'bg-indigo-600'
+    hoverBgColor = 'hover:bg-indigo-700'
+    focusRingColor = 'focus:ring-indigo-600'
+  }
+
+  return (
+    <button
+      className={`px-4 py-2 mt-4 text-white rounded ${bgColor} ${hoverBgColor} focus:outline-none ${focusRingColor} focus:ring-opacity-50`}
+    >
+      {children}
+    </button>
+  )
+}
+
+// homepage will display a sign-in card for employees only
 export default async function Home() {
   const { indexItems } = await getIndexItems()
 
   return (
-    <>
-      <section className="py-8 bg-gray-100">
-        <h1 className="sr-only">Site Index</h1>
-        <div className="max-w-3xl p-8 mx-auto border rounded-lg shadow-lg border-blue-50 bg-gray-50">
-          <label
-            htmlFor="search"
-            className="block text-lg font-medium leading-6 text-gray-900"
-          >
-            Quick search
-          </label>
-          <div className="relative flex items-center mt-2">
-            <input
-              type="text"
-              name="search"
-              id="search"
-              className="block w-full rounded-md border-0 py-1.5 pr-14 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-            />
-            <div className="absolute inset-y-0 right-0 flex py-1.5 pr-1.5">
-              <span className="inline-flex items-center px-1 font-sans text-xs text-gray-400 rounded">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.7}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-                  />
-                </svg>
-              </span>
-            </div>
+    <div
+      className="flex items-center justify-center py-64 bg-center bg-no-repeat bg-cover"
+      style={{ backgroundImage: "url('/signin-bg.webp')" }}
+    >
+      <Card>
+        <h1 className="text-4xl font-bold text-center">Site Index Admin</h1>
+        <div className="">
+          <p className="mt-4 font-bold text-center text-red-800">
+            This site is intended for staff only.
+          </p>
+          <OneLoginSignInButton />
+        </div>
+        <p>Public Sites Found Here:</p>
+        <div className="grid grid-cols-3 gap-2 text-white">
+          <Button color="can">
+            <a
+              href="https://canadacollege.edu/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Cañada College
+            </a>
+          </Button>
+          <div className="">
+            <Button color="csm">
+              <a
+                href="https://collegeofsanmateo.edu/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                College of San Mateo
+              </a>
+            </Button>
           </div>
-          <div className="mt-4">
-            <label className="text-sm font-semibold text-center text-gray-800">
-              Show results for...
-            </label>
-            <fieldset className="mt-2">
-              <legend className="sr-only">
-                Select the campus to filter results
-              </legend>
-              <div className="space-y-4 sm:flex sm:items-center sm:space-x-10 sm:space-y-0">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center">
-                    <input
-                      id="show-all"
-                      name="notification-method"
-                      type="radio"
-                      className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
-                    />
-                    <label
-                      htmlFor="show-all"
-                      className="block ml-2 text-sm font-medium leading-6 text-gray-900"
-                    >
-                      Show All
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      name="notification-method"
-                      type="radio"
-                      className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
-                    />
-                    <label className="block ml-2 text-sm font-medium leading-6 text-gray-900">
-                      College of San Mateo
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      name="notification-method"
-                      type="radio"
-                      className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
-                    />
-                    <label className="block ml-2 text-sm font-medium leading-6 text-gray-900">
-                      Cañada College
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      id="Sky"
-                      name="notification-method"
-                      type="radio"
-                      className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
-                    />
-                    <label
-                      htmlFor="Sky"
-                      className="block ml-2 text-sm font-medium leading-6 text-gray-900"
-                    >
-                      Skyline College
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      name="notification-method"
-                      type="radio"
-                      className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
-                    />
-                    <label className="block ml-2 text-sm font-medium leading-6 text-gray-900">
-                      District Office
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </fieldset>
+          <div>
+            <Button color="sky">
+              <a
+                href="https://skylinecollege.edu/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Skyline College
+              </a>
+            </Button>
           </div>
         </div>
-      </section>
-      <section className="container flow-root py-8 mx-auto">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <ul className="max-w-3xl mx-auto">
-              {indexItems?.map((indexItem) => (
-                <IndexItem key={indexItem.id} indexItem={indexItem} />
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-    </>
+      </Card>
+    </div>
   )
 }

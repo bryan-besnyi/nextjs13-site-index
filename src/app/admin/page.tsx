@@ -1,12 +1,21 @@
 import { getIndexItems } from '@/lib/indexItems'
 import Link from 'next/link'
+import DeleteButton from '@/components/DeleteButton'
 
 export default async function AdminPage() {
+  'use client'
   const { indexItems } = await getIndexItems()
 
   return (
     <div>
       <h1 className="p-5 text-3xl font-bold bg-slate-200">Admin Home</h1>
+      <div className="flex flex-col justify-center p-5 bg-slate-600">
+        <label className="text-white" htmlFor="Search">
+          Search for Index Items
+        </label>
+        <input type="text" placeholder="Search" className="p-3 my-5" />
+        <button className="max-w-xl p-3 bg-slate-200">Search</button>
+      </div>
       <table className="min-w-full divide-y divide-gray-300">
         <thead className="bg-gray-50">
           <tr>
@@ -40,7 +49,7 @@ export default async function AdminPage() {
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="text-sm font-medium text-gray-900">
-                {item.title}
+                <a href={item.url}>{item.title}</a>
               </div>
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
@@ -56,7 +65,7 @@ export default async function AdminPage() {
             <td>
               <Link href={`/admin/edit/${item.id}`}>Edit</Link>
             </td>
-            <td className="font-semibold text-red-400 underline">Delete</td>
+            <DeleteButton />
           </tr>
         ))}
       </table>

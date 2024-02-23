@@ -1,36 +1,6 @@
 'use client'
 import Link from 'next/link'
 
-const Letters = [
-  'a',
-  'b',
-  'c',
-  'd',
-  'e',
-  'f',
-  'g',
-  'h',
-  'i',
-  'j',
-  'k',
-  'l',
-  'm',
-  'n',
-  'o',
-  'p',
-  'q',
-  'r',
-  's',
-  't',
-  'u',
-  'v',
-  'w',
-  'x',
-  'y',
-  'z',
-  '1',
-]
-
 const Header = () => {
   return (
     <header>
@@ -40,21 +10,6 @@ const Header = () => {
             <Link href="/" className="text-2xl">
               SMCCCD Site Index
             </Link>
-            <div>
-              <Link
-                className="mr-8 hover:underline hover:text-indigo-200"
-                href="/"
-              >
-                Home
-              </Link>
-              {/* If a user session exists, show "logout", if it does not, show "login" */}
-              <Link
-                className="hover:underline hover:text-indigo-200"
-                href="/api/auth/signin"
-              >
-                Login
-              </Link>
-            </div>
           </li>
         </ul>
       </nav>

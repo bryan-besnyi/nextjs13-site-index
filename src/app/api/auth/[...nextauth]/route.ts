@@ -1,20 +1,20 @@
-import NextAuth from "next-auth"
-import OneLoginProvider from "next-auth/providers/onelogin";
+import NextAuth from 'next-auth'
+import OneLoginProvider from 'next-auth/providers/onelogin'
 
 const authOptions = {
-    providers: [
-        OneLoginProvider({
-            clientId: process.env.ONELOGIN_CLIENT_ID,
-            clientSecret: process.env.ONELOGIN_CLIENT_SECRET,
-            issuer: 'https://smccd.onelogin.com',       
-        }),
-    ],
-    pages: {
-        signIn: '/auth/signin',
-        signOut: '/'
-    },
-    debug: true,
-    secret: process.env.SECRET as string,
+  providers: [
+    OneLoginProvider({
+      clientId: process.env.ONELOGIN_CLIENT_ID,
+      clientSecret: process.env.ONELOGIN_CLIENT_SECRET,
+      issuer: 'https://smccd.onelogin.com',
+    }),
+  ],
+  pages: {
+    signIn: '/',
+    signOut: '/',
+  },
+  debug: true,
+  secret: process.env.SECRET as string,
 }
 
 const handler = NextAuth(authOptions)

@@ -30,6 +30,8 @@ const UpdateIndexItemForm = () => {
       <select name="campus" id="campus" className="border-2">
         <option value="district-office">District Office</option>
         <option value="college-of-san-mateo">College of San Mateo</option>
+        <option value="canada-college">Cañada College</option>
+        <option value="skyline-college">Skyline College</option>
       </select>
       <button type="submit">Update Index Item</button>
     </form>
