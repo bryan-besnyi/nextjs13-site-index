@@ -8,7 +8,6 @@ export default async function AdminEditPage({ params: { id } }) {
     return <h1 className="text-red-700">No Item Found</h1>
   }
 
-  // This action function must be defined inline with "use server" directive at the top of the function.
   async function updateIndexItemAction(formData) {
     'use server'
 

@@ -1,25 +1,34 @@
 'use client'
 
 import { updateIndexItemAction } from '../_actions'
+import { revalidatePath } from 'next/cache'
+import { useRouter } from 'next/router'
 
 const UpdateIndexItemForm = () => {
-  async function action(event: React.FormEvent<HTMLFormElement>) {
+  const router = useRouter()
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
     const data = new FormData(event.currentTarget)
     const id = Number(data.get('id'))
-    const title = data.get('title')
-    if (typeof title !== 'string' || !title) return
-    const url = data.get('url')
-    if (typeof url !== 'string' || !url) return
-    const letter = data.get('letter')
-    if (typeof letter !== 'string' || !letter) return
-    const campus = data.get('campus')
-    if (typeof campus !== 'string' || !campus) return
+    const title = data.get('title').toString()
+    const url = data.get('url').toString()
+    const letter = data.get('letter').toString()
+    const campus = data.get('campus').toString()
 
-    await updateIndexItemAction(id, title, url, letter, campus)
+    try {
+      await updateIndexItemAction(id, title, url, letter, campus)
+      revalidatePath('/admin')
+
+      router.push('/admin')
+    } catch (error) {
+      console.error('Failed to update index item:', error)
+    }
   }
 
   return (
-    <form action="/api/updateIndexItem" method="POST" onSubmit={action}>
+    <form action="/api/updateIndexItem" method="POST">
       <label htmlFor="title">Title</label>
       <input type="text" name="title" id="title" className="border-2" />
       <label htmlFor="letter">Letter</label>
@@ -28,10 +37,10 @@ const UpdateIndexItemForm = () => {
       <input type="text" name="url" id="url" className="border-2" />
       <label htmlFor="campus">Campus</label>
       <select name="campus" id="campus" className="border-2">
-        <option value="district-office">District Office</option>
-        <option value="college-of-san-mateo">College of San Mateo</option>
-        <option value="canada-college">Cañada College</option>
-        <option value="skyline-college">Skyline College</option>
+        <option value="CAN">Cañada College</option>
+        <option value="CSM">College of San Mateo</option>
+        <option value="DO">District Office</option>
+        <option value="SKY">Skyline College</option>
       </select>
       <button type="submit">Update Index Item</button>
     </form>

@@ -60,7 +60,7 @@ export default async function Home() {
             <a
               href="https://canadacollege.edu/"
               target="_blank"
-              rel="noreferrer"
+              rel="noreferrer noopener"
             >
               Cañada College
             </a>
@@ -70,7 +70,7 @@ export default async function Home() {
               <a
                 href="https://collegeofsanmateo.edu/"
                 target="_blank"
-                rel="noreferrer"
+                rel="noreferrer noopener"
               >
                 College of San Mateo
               </a>
@@ -81,7 +81,7 @@ export default async function Home() {
               <a
                 href="https://skylinecollege.edu/"
                 target="_blank"
-                rel="noreferrer"
+                rel="noreferrer noopener"
               >
                 Skyline College
               </a>

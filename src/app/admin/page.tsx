@@ -9,11 +9,15 @@ export default async function AdminPage() {
   return (
     <div>
       <h1 className="p-5 text-3xl font-bold bg-slate-200">Admin Home</h1>
-      <div className="flex flex-col justify-center p-5 bg-slate-600">
-        <label className="text-white" htmlFor="Search">
+      <div className="flex items-center justify-center w-full p-5 bg-slate-600">
+        <label className="text-white sr-only" htmlFor="Search">
           Search for Index Items
         </label>
-        <input type="text" placeholder="Search" className="p-3 my-5" />
+        <input
+          type="text"
+          placeholder="Search"
+          className="flex-grow p-3 mr-2"
+        />
         <button className="max-w-xl p-3 bg-slate-200">Search</button>
       </div>
       <table className="min-w-full divide-y divide-gray-300">
