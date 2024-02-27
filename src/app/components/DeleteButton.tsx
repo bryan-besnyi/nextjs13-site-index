@@ -1,5 +1,5 @@
 'use client'
-import prisma from '@/utils/db'
+// import prisma from '@/lib/db'
 
 // display alert and remove item from the page using Prisma
 export default function DeleteButton() {
