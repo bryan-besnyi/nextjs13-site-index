@@ -108,13 +108,7 @@ const SearchResults = () => {
                 <Link href={`/admin/edit/${item.id}`}>Edit</Link>
               </td>
               <td>
-                <DeleteButton
-                  id={Number(item.id)}
-                  itemName={item.title}
-                  handleDelete={function (id: number): void {
-                    throw new Error('Function not implemented.');
-                  }}
-                />
+                <DeleteButton id={Number(item.id)} itemName={item.title} />
               </td>
             </tr>
           ))}
