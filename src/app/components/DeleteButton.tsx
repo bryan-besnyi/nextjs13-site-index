@@ -1,25 +1,31 @@
-'use client'
-// import prisma from '@/lib/db'
+'use client';
 
-// display alert and remove item from the page using Prisma
-export default function DeleteButton() {
-  const handleClick = () => {
-    alert('Are you sure you want to delete?')
+import { deleteIndexItemAction } from '../_actions';
 
-    // Remove the item from the page
+export interface DeleteButtonProps {
+  id: number;
+  itemName: string;
+}
 
-    // Remove the item from the database
-    // async function deleteItem() {
-    //   'use server'
-    //   await prisma.indexItem.delete({
-    //     where: { id: indexItem.id },
-    //   })
-    // }
-  }
+export default function DeleteButton({ id, itemName }: DeleteButtonProps) {
+  const handleDelete = async (id: number, itemName: string) => {
+    console.log('Deleting item:', id, itemName);
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${itemName}?`
+    );
+    if (confirmDelete) {
+      try {
+        const { deletedItem } = await deleteIndexItemAction(id);
+        console.log(`Successfully deleted item: ${deletedItem}`);
+      } catch (error) {
+        console.error(`Failed to delete item with ID: ${id}`);
+      }
+    }
+  };
 
   return (
-    <button className="py-4" onClick={handleClick}>
-      Delete
+    <button onClick={() => handleDelete(id, itemName)}>
+      Delete <span className="sr-only">{itemName}</span>
     </button>
-  )
+  );
 }

@@ -1,6 +1,5 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
-import Provider from './components/Provider'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import { Analytics } from '@vercel/analytics/react'

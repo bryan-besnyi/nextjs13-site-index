@@ -1,20 +1,20 @@
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/prisma';
 
 export default async function AdminEditPage({ params: { id } }) {
   const indexItem = await prisma.indexItem.findUnique({
-    where: { id: Number(id) },
-  })
+    where: { id: Number(id) }
+  });
   if (!indexItem) {
-    return <h1 className="text-red-700">No Item Found</h1>
+    return <h1 className="text-red-700">No Item Found</h1>;
   }
 
   async function updateIndexItemAction(formData) {
-    'use server'
+    'use server';
 
-    const title = formData.get('title')
-    const url = formData.get('url')
-    const letter = formData.get('letter')
-    const campus = formData.get('campus')
+    const title = formData.get('title');
+    const url = formData.get('url');
+    const letter = formData.get('letter');
+    const campus = formData.get('campus');
 
     await prisma.indexItem.update({
       where: { id: indexItem.id },
@@ -22,17 +22,17 @@ export default async function AdminEditPage({ params: { id } }) {
         title,
         url,
         letter,
-        campus,
-      },
-    })
+        campus
+      }
+    });
 
     // Redirect after successful update
     return new Response(null, {
       status: 303,
       headers: {
-        Location: `/admin/success-page`, // Adjust as necessary
-      },
-    })
+        Location: `/admin/`
+      }
+    });
   }
 
   return (
@@ -82,5 +82,5 @@ export default async function AdminEditPage({ params: { id } }) {
         </button>
       </form>
     </div>
-  )
+  );
 }

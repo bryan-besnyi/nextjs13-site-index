@@ -1,15 +1,15 @@
-import { getIndexItems } from '@/lib/indexItems'
-import Link from 'next/link'
-import DeleteButton from '@/components/DeleteButton'
+import { getIndexItems } from '@/lib/indexItems';
+import SearchResults from '@/components/SearchResults';
 
 export default async function AdminPage() {
-  'use client'
-  const { indexItems } = await getIndexItems()
+  'use client';
+  const { indexItems } = await getIndexItems();
 
   return (
     <div>
       <h1 className="p-5 text-3xl font-bold bg-slate-200">Admin Home</h1>
-      <div className="flex items-center justify-center w-full p-5 bg-slate-600">
+      <SearchResults />
+      {/* <div className="flex items-center justify-center w-full p-5 bg-slate-600">
         <label className="text-white sr-only" htmlFor="Search">
           Search for Index Items
         </label>
@@ -72,7 +72,7 @@ export default async function AdminPage() {
             <DeleteButton />
           </tr>
         ))}
-      </table>
+      </table> */}
     </div>
-  )
+  );
 }
