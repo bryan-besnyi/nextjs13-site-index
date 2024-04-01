@@ -15,7 +15,7 @@ export default function DeleteButton({ id, itemName }: DeleteButtonProps) {
     );
     if (confirmDelete) {
       try {
-        const { deletedItem } = await deleteIndexItemAction(id);
+        const { deletedItem } = await deleteIndexItemAction(id.toString()); // Convert id to string
         console.log(`Successfully deleted item: ${deletedItem}`);
       } catch (error) {
         console.error(`Failed to delete item with ID: ${id}`);
