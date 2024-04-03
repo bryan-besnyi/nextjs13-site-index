@@ -1,27 +1,33 @@
-'use client'
+'use client';
 
-import { createIndexItemAction } from '../_actions'
+import { useRouter } from 'next/navigation';
+import { createIndexItemAction } from '../_actions';
 
-const NewIndexItemForm = () => {
+const NewIndexItemForm: React.FC = () => {
+  const router = useRouter();
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    await action(data);
+    router.push('/admin');
+  };
+
   async function action(data: FormData) {
-    const title = data.get('title')
-    if (typeof title !== 'string' || !title) return
-    const url = data.get('url')
-    if (typeof url !== 'string' || !url) return
-    const letter = data.get('letter')
-    if (typeof letter !== 'string' || !letter) return
-    const campus = data.get('campus')
-    if (typeof campus !== 'string' || !campus) return
+    const title = data.get('title');
+    if (typeof title !== 'string' || !title) return;
+    const url = data.get('url');
+    if (typeof url !== 'string' || !url) return;
+    const letter = data.get('letter');
+    if (typeof letter !== 'string' || !letter) return;
+    const campus = data.get('campus');
+    if (typeof campus !== 'string' || !campus) return;
 
-    await createIndexItemAction(title, url, letter, campus)
+    await createIndexItemAction(title, url, letter, campus);
   }
 
   return (
-    <form
-      className="flex flex-col max-w-2xl gap-3"
-      method="post"
-      action={action}
-    >
+    <form className="flex flex-col max-w-2xl gap-3" onSubmit={handleSubmit}>
       <label
         htmlFor="title"
         className="block text-sm font-medium leading-6 text-gray-900"
@@ -79,15 +85,16 @@ const NewIndexItemForm = () => {
         >
           Add Index Item
         </button>
-        <button
+        {/* TODO: Make this button work *}
+        {/* <button
           type="submit"
           className="rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
         >
           Add Index Item and Add Another
-        </button>
+        </button> */}
       </div>
     </form>
-  )
-}
+  );
+};
 
-export default NewIndexItemForm
+export default NewIndexItemForm;

@@ -1,6 +1,6 @@
-import NewIndexItemForm from '../../components/NewIndexItemForm'
+import NewIndexItemForm from '../../components/NewIndexItemForm';
 
-export default function Page() {
+export default function NewIndexItemPage() {
   return (
     <div>
       <h1 className="p-8 text-3xl font-bold bg-slate-100">
@@ -10,5 +10,5 @@ export default function Page() {
         <NewIndexItemForm />
       </div>
     </div>
-  )
+  );
 }

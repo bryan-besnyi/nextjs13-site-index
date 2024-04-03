@@ -1,9 +1,10 @@
-import Provider from '../components/Provider'
-import Link from 'next/link'
+import SessionProvider from '../components/SessionProvider';
+import Link from 'next/link';
+import { getServerSession } from 'next-auth/next';
 
 export const metadata = {
-  title: 'Admin Area | Site Index',
-}
+  title: 'Admin Area | Site Index'
+};
 
 const Sidebar = () => {
   return (
@@ -19,22 +20,26 @@ const Sidebar = () => {
         </ul>
       </nav>
     </div>
-  )
-}
+  );
+};
 
-export default function AdminLayout({
-  children,
+export default async function AdminLayout({
+  children
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  // if no session, display login button
-  // if session, display logout button
+  /**
+   * Retrieves the server session.
+   * @returns {Promise<Session>} A promise that resolves to the server session.
+   */
+  const session = await getServerSession();
+
   return (
-    <Provider>
+    <SessionProvider>
       <div className="flex flex-row">
         <Sidebar />
         <main className="w-full">{children}</main>
       </div>
-    </Provider>
-  )
+    </SessionProvider>
+  );
 }

@@ -1,6 +1,10 @@
 'use server';
 import prisma from './prisma';
 
+/**
+ * Retrieves the index items from the database.
+ * @returns {Promise<{ indexItems: IndexItem[] } | { error: any }>} A promise that resolves to an object containing either the index items or an error.
+ */
 export async function getIndexItems() {
   try {
     const indexItems = await prisma.indexItem.findMany();
@@ -10,6 +14,11 @@ export async function getIndexItems() {
   }
 }
 
+/**
+ * Searches for index items based on a query.
+ * @param query - The search query.
+ * @returns An object containing the search results or an error.
+ */
 export async function searchIndexItems(query: string) {
   try {
     const results = await prisma.indexItem.findMany({
@@ -25,6 +34,11 @@ export async function searchIndexItems(query: string) {
   }
 }
 
+/**
+ * Retrieves an index item by its ID.
+ * @param id - The ID of the index item.
+ * @returns An object containing the index item if found, or an error if an error occurred.
+ */
 export async function getIndexItemById(id: string) {
   try {
     const indexItem = await prisma.indexItem.findUnique({
@@ -37,6 +51,14 @@ export async function getIndexItemById(id: string) {
   }
 }
 
+/**
+ * Creates a new index item.
+ * @param title - The title of the index item.
+ * @param url - The URL of the index item.
+ * @param letter - The letter of the index item.
+ * @param campus - The campus of the index item.
+ * @returns An object containing the newly created index item or an error object.
+ */
 export async function createIndexItem(
   title: string,
   url: string,
@@ -58,6 +80,16 @@ export async function createIndexItem(
   }
 }
 
+/**
+ * Updates an index item with the specified ID.
+ *
+ * @param id - The ID of the index item to update.
+ * @param title - The new title for the index item.
+ * @param url - The new URL for the index item.
+ * @param letter - The new letter for the index item.
+ * @param campus - The new campus for the index item.
+ * @returns An object containing the updated index item if successful, or an error object if an error occurred.
+ */
 export async function updateIndexItem(
   id: number,
   title: string,
@@ -81,15 +113,20 @@ export async function updateIndexItem(
   }
 }
 
+/**
+ * Deletes an index item with the specified ID.
+ * @param id - The ID of the index item to delete.
+ * @returns A promise that resolves to an object containing the deleted item or an error.
+ */
 export async function deleteIndexItem(id: number) {
   try {
     const deletedItem = await prisma.indexItem.delete({
       where: { id: id }
     });
-    console.log('Deleted item:', deletedItem); // Add this line
+    console.log('Deleted item:', deletedItem);
     return { deletedItem };
   } catch (error) {
-    console.error('Error in deleteIndexItem:', error); // Add this line
+    console.error('Error in deleteIndexItem:', error);
     return { error };
   }
 }
