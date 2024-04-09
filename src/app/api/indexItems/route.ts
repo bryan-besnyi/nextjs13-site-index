@@ -18,10 +18,7 @@ export async function GET(req: NextRequest) {
     if (campus) conditions.campus = campus;
     if (letter) conditions.letter = { contains: letter, mode: 'insensitive' };
     if (search)
-      conditions.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { url: { contains: search, mode: 'insensitive' } }
-      ];
+      conditions.OR = [{ title: { contains: search, mode: 'insensitive' } }];
 
     const indexItems = await prisma.indexItem.findMany({
       where: conditions
