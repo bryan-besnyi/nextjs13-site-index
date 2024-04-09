@@ -1,9 +1,12 @@
-import OneLoginSignInButton from '../../components/SignInButton'
+import { Suspense } from 'react';
+import OneLoginSignInButton from '../../components/SignInButton';
 
 export default function SignInPage() {
   return (
     <div className="h-80">
-      <OneLoginSignInButton />
+      <Suspense>
+        <OneLoginSignInButton />
+      </Suspense>
     </div>
-  )
+  );
 }

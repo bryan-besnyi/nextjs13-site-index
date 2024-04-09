@@ -1,31 +1,32 @@
-import { getIndexItems } from '@/lib/indexItems'
-import OneLoginSignInButton from './components/SignInButton'
+import { getIndexItems } from '@/lib/indexItems';
+import OneLoginSignInButton from './components/SignInButton';
+import { Suspense } from 'react';
 
 const Card = ({ children }) => (
   <div className="p-4 border border-gray-300 rounded-md shadow-md bg-white/80 backdrop-blur-md">
     {children}
   </div>
-)
+);
 
 const Button = ({ children, color = 'default' }) => {
-  let bgColor, hoverBgColor, focusRingColor
+  let bgColor, hoverBgColor, focusRingColor;
 
   if (color === 'csm') {
-    bgColor = 'bg-blue-600'
-    hoverBgColor = 'hover:bg-blue-700'
-    focusRingColor = 'focus:ring-blue-600'
+    bgColor = 'bg-blue-600';
+    hoverBgColor = 'hover:bg-blue-700';
+    focusRingColor = 'focus:ring-blue-600';
   } else if (color === 'can') {
-    bgColor = 'bg-green-600'
-    hoverBgColor = 'hover:bg-green-700'
-    focusRingColor = 'focus:ring-green-600'
+    bgColor = 'bg-green-600';
+    hoverBgColor = 'hover:bg-green-700';
+    focusRingColor = 'focus:ring-green-600';
   } else if (color === 'sky') {
-    bgColor = 'bg-red-600'
-    hoverBgColor = 'hover:bg-red-700'
-    focusRingColor = 'focus:ring-red-600'
+    bgColor = 'bg-red-600';
+    hoverBgColor = 'hover:bg-red-700';
+    focusRingColor = 'focus:ring-red-600';
   } else {
-    bgColor = 'bg-indigo-600'
-    hoverBgColor = 'hover:bg-indigo-700'
-    focusRingColor = 'focus:ring-indigo-600'
+    bgColor = 'bg-indigo-600';
+    hoverBgColor = 'hover:bg-indigo-700';
+    focusRingColor = 'focus:ring-indigo-600';
   }
 
   return (
@@ -34,12 +35,12 @@ const Button = ({ children, color = 'default' }) => {
     >
       {children}
     </button>
-  )
-}
+  );
+};
 
 // homepage will display a sign-in card for employees only
 export default async function Home() {
-  const { indexItems } = await getIndexItems()
+  const { indexItems } = await getIndexItems();
 
   return (
     <div
@@ -52,7 +53,9 @@ export default async function Home() {
           <p className="mt-4 font-bold text-center text-red-800">
             This site is intended for staff only.
           </p>
-          <OneLoginSignInButton />
+          <Suspense fallback={<div>Loading...</div>}>
+            <OneLoginSignInButton />
+          </Suspense>
         </div>
         <p>Public Sites Found Here:</p>
         <div className="grid grid-cols-3 gap-2 text-white">
@@ -90,5 +93,5 @@ export default async function Home() {
         </div>
       </Card>
     </div>
-  )
+  );
 }
