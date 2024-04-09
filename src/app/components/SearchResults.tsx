@@ -43,11 +43,11 @@ const SearchResults = () => {
     event.preventDefault();
 
     const data = new FormData(event.currentTarget);
-    const query = data.get('query').toString();
+    const query = (data.get('query') as string) || '';
 
     try {
       const results = await searchIndexItems(query);
-      setSearchResults(results.results);
+      setSearchResults(results.results || []); // Provide a default empty array if results.results is undefined
     } catch (error) {
       console.error('Failed to search index items:', error);
     }

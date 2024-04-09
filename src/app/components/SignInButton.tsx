@@ -1,10 +1,10 @@
-'use client'
+'use client';
 
-import { useSearchParams } from 'next/navigation'
-import { signIn } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 
 const OneLoginSignInButton = () => {
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams();
 
   return (
     <div className="flex justify-center py-8">
@@ -17,7 +17,7 @@ const OneLoginSignInButton = () => {
         Continue with MySMCCD
       </button>
     </div>
-  )
-}
+  );
+};
 
-export default OneLoginSignInButton
+export default OneLoginSignInButton;

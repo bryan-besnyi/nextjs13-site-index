@@ -51,6 +51,7 @@ const NewIndexItemForm: React.FC = () => {
         type="text"
         name="letter"
         className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+        maxLength={1}
       />
       <label
         className="block mt-3 text-sm font-medium leading-6 text-gray-900"
@@ -78,7 +79,7 @@ const NewIndexItemForm: React.FC = () => {
         <option value="DO">District Office</option>
         <option value="SKY">Skyline College</option>
       </select>
-      <div className="flex flex-row gap-3 mt-5">
+      <div className="mt-5">
         <button
           type="submit"
           className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"

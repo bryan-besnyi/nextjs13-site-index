@@ -8,13 +8,20 @@ export async function GET(req: NextRequest) {
     const url = req.nextUrl;
     const campus = url.searchParams.get('campus');
     const letter = url.searchParams.get('letter');
+    const search = url.searchParams.get('search');
 
     const conditions: {
       campus?: string;
       letter?: { contains: string; mode: 'insensitive' };
+      OR?: { title: { contains: string; mode: 'insensitive' } }[];
     } = {};
     if (campus) conditions.campus = campus;
     if (letter) conditions.letter = { contains: letter, mode: 'insensitive' };
+    if (search)
+      conditions.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { url: { contains: search, mode: 'insensitive' } }
+      ];
 
     const indexItems = await prisma.indexItem.findMany({
       where: conditions
