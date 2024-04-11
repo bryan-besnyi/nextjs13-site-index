@@ -28,7 +28,7 @@ const SearchResults = () => {
     try {
       const response = await searchIndexItems(''); // Pass an empty string to fetch all items
       const results = response.results;
-      results?.sort((a, b) => a.title.localeCompare(b.title)); // Sort the results
+      results?.sort((a, b) => a.id - b.id); // Sort the results by ID
       setSearchResults(results);
     } catch (error) {
       console.error('Failed to fetch all items:', error);
@@ -46,8 +46,10 @@ const SearchResults = () => {
     const query = (data.get('query') as string) || '';
 
     try {
-      const results = await searchIndexItems(query);
-      setSearchResults(results.results || []); // Provide a default empty array if results.results is undefined
+      const response = await searchIndexItems(query);
+      const results = response.results;
+      results?.sort((a, b) => a.id - b.id); // Sort the results by ID
+      setSearchResults(results);
     } catch (error) {
       console.error('Failed to search index items:', error);
     }

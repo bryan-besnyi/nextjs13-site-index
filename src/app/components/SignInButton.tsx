@@ -1,11 +1,8 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 
 const OneLoginSignInButton = () => {
-  const searchParams = useSearchParams();
-
   return (
     <div className="flex justify-center py-8">
       <button

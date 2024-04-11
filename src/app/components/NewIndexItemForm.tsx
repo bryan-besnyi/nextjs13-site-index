@@ -3,6 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { createIndexItemAction } from '../_actions';
 
+const campusInfo = [
+  { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
+  { id: 'canadaCollege', value: 'Cañada College' },
+  { id: 'districtOffice', value: 'District Office' },
+  { id: 'skylineCollege', value: 'Skyline College' }
+];
+
 const NewIndexItemForm: React.FC = () => {
   const router = useRouter();
 
@@ -68,17 +75,28 @@ const NewIndexItemForm: React.FC = () => {
       <label className="mt-3" htmlFor="campus">
         Campus
       </label>
-      <select
-        id="campus"
-        name="campus"
-        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
-        required={true}
-      >
-        <option value="CAN">Cañada College</option>
-        <option value="CSM">College of San Mateo</option>
-        <option value="DO">District Office</option>
-        <option value="SKY">Skyline College</option>
-      </select>
+      <fieldset className="mt-4">
+        <legend className="sr-only">Notification method</legend>
+        <div className="space-y-4">
+          {campusInfo.map((campus) => (
+            <div key={campus.id} className="flex items-center">
+              <input
+                id={campus.id}
+                name="campus"
+                value={campus.value}
+                type="radio"
+                className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
+              />
+              <label
+                htmlFor={campus.id}
+                className="block ml-3 text-sm font-medium leading-6 text-gray-900"
+              >
+                {campus.value}
+              </label>
+            </div>
+          ))}
+        </div>
+      </fieldset>
       <div className="mt-5">
         <button
           type="submit"

@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model indexitems {
+model IndexItem {
   id        Int      @id @default(autoincrement())
   title     String
   letter    String
