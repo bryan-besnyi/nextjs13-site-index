@@ -20,11 +20,10 @@ export async function GET(req: NextRequest) {
     if (search)
       conditions.OR = [{ title: { contains: search, mode: 'insensitive' } }];
 
-    const indexItems = await prisma.indexItem.findMany({
+    const indexItems = await prisma.indexitem.findMany({
       where: conditions
     });
 
-    // return JSON data
     return new NextResponse(JSON.stringify(indexItems), {
       status: 200,
       headers: {
@@ -49,7 +48,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
   try {
     const { title, letter, url, campus } = await req.json(); // Parse JSON data from request body
 
-    const newIndexItem = await prisma.indexItem.create({
+    const newIndexItem = await prisma.indexitem.create({
       data: {
         title: title,
         letter: letter,
@@ -81,7 +80,7 @@ export async function DELETE(req: NextRequest, res: NextResponse) {
   try {
     const id = req.nextUrl.searchParams.get('id');
 
-    await prisma.indexItem.delete({
+    await prisma.indexitem.delete({
       where: { id: Number(id) }
     });
 

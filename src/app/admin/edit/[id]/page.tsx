@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 
 export default async function AdminEditPage({ params: { id } }) {
-  const indexItem = await prisma.indexItem.findUnique({
+  const indexItem = await prisma.indexitem.findUnique({
     where: { id: Number(id) }
   });
   if (!indexItem) {
@@ -17,7 +17,7 @@ export default async function AdminEditPage({ params: { id } }) {
     const letter = formData.get('letter') as string;
     const campus = formData.get('campus') as string;
 
-    await prisma.indexItem.update({
+    await prisma.indexitem.update({
       where: { id: indexItem?.id },
       data: {
         title,

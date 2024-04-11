@@ -1,16 +1,16 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma';
 
 export default async function Page({ params }: { params: { letter: string } }) {
   if (params.letter.length !== 1) {
-    return <h1 className="text-center text-red-700 text-8xl">Invalid Entry</h1>
+    return <h1 className="text-center text-red-700 text-8xl">Invalid Entry</h1>;
   }
-  const indexItems = await prisma.indexItem.findMany({
-    where: { letter: params.letter },
-  })
+  const indexItems = await prisma.indexitem.findMany({
+    where: { letter: params.letter }
+  });
   if (indexItems.length === 0) {
     return (
       <h1 className="mt-12 text-xl text-center text-red-700">No Items Found</h1>
-    )
+    );
   }
   return (
     <div className="container mx-auto">
@@ -29,5 +29,5 @@ export default async function Page({ params }: { params: { letter: string } }) {
         ))}
       </ul>
     </div>
-  )
+  );
 }

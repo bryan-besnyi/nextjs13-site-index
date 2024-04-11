@@ -1,13 +1,9 @@
 'use server';
 import prisma from './prisma';
 
-/**
- * Retrieves the index items from the database.
- * @returns {Promise<{ indexItems: IndexItem[] } | { error: any }>} A promise that resolves to an object containing either the index items or an error.
- */
 export async function getIndexItems() {
   try {
-    const indexItems = await prisma.indexItem.findMany();
+    const indexItems = await prisma.indexitem.findMany();
     return { indexItems };
   } catch (error) {
     return { error };
@@ -21,7 +17,7 @@ export async function getIndexItems() {
  */
 export async function searchIndexItems(query: string) {
   try {
-    const results = await prisma.indexItem.findMany({
+    const results = await prisma.indexitem.findMany({
       where: {
         title: {
           contains: query
@@ -41,7 +37,7 @@ export async function searchIndexItems(query: string) {
  */
 export async function getIndexItemById(id: string) {
   try {
-    const indexItem = await prisma.indexItem.findUnique({
+    const indexItem = await prisma.indexitem.findUnique({
       where: { id: Number(id) }
     });
 
@@ -66,7 +62,7 @@ export async function createIndexItem(
   campus: string
 ) {
   try {
-    const newIndexItem = await prisma.indexItem.create({
+    const newIndexItem = await prisma.indexitem.create({
       data: {
         title: title,
         url: url,
@@ -98,7 +94,7 @@ export async function updateIndexItem(
   campus: string
 ) {
   try {
-    const updatedItem = await prisma.indexItem.update({
+    const updatedItem = await prisma.indexitem.update({
       where: { id: Number(id) },
       data: {
         title: title,
@@ -120,7 +116,7 @@ export async function updateIndexItem(
  */
 export async function deleteIndexItem(id: number) {
   try {
-    const deletedItem = await prisma.indexItem.delete({
+    const deletedItem = await prisma.indexitem.delete({
       where: { id: id }
     });
     console.log('Deleted item:', deletedItem);
