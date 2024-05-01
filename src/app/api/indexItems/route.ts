@@ -21,7 +21,10 @@ export async function GET(req: NextRequest) {
       conditions.OR = [{ title: { contains: search, mode: 'insensitive' } }];
 
     const indexItems = await prisma.indexitem.findMany({
-      where: conditions
+      where: conditions,
+      orderBy: {
+        title: 'asc'
+      }
     });
 
     return new NextResponse(JSON.stringify(indexItems), {
