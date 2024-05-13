@@ -34,7 +34,7 @@ export default async function AdminLayout({
    * @returns {Promise<Session>} A promise that resolves to the server session.
    */
   const session = await getServerSession();
-  if (!session?.user?.email?) {
+  if (!session?.user?.email) {
     redirect('/');
   }
   return (
