@@ -1,7 +1,12 @@
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
 
 export default async function AdminEditPage({ params: { id } }) {
+  const session = await getServerSession();
+  if (!session.user.email) {
+    redirect('/');
+  }
   const indexItem = await prisma.indexitem.findUnique({
     where: { id: Number(id) }
   });

@@ -1,6 +1,7 @@
 import SessionProvider from '../components/SessionProvider';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth/next';
+import { redirect } from 'next/navigation';
 
 export const metadata = {
   title: 'Admin Area | Site Index'
@@ -33,7 +34,9 @@ export default async function AdminLayout({
    * @returns {Promise<Session>} A promise that resolves to the server session.
    */
   const session = await getServerSession();
-
+  if (!session.user.email) {
+    redirect('/');
+  }
   return (
     <SessionProvider>
       <div className="flex flex-row">

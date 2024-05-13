@@ -76,7 +76,6 @@ const NewIndexItemForm: React.FC = () => {
         Campus
       </label>
       <fieldset className="mt-4">
-        <legend className="sr-only">Notification method</legend>
         <div className="space-y-4">
           {campusInfo.map((campus) => (
             <div key={campus.id} className="flex items-center">
