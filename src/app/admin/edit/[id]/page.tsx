@@ -38,7 +38,7 @@ export default async function AdminEditPage({ params: { id } }) {
   return (
     <div>
       <h1 className="p-5 text-3xl font-bold bg-slate-200">
-        Edit Index Item: {indexItem.title} - (ID: {id}){' '}
+        Edit Index Item: {indexItem.title} - (ID: {id}) - {indexItem.campus}
       </h1>
       <form
         method="post"
