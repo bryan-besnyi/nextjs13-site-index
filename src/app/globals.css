@@ -67,10 +67,13 @@
 }
 
 @layer base {
-  /* * {
-    @apply border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  } */
+  .sort-asc::after {
+      content: '👇';
+      margin-left: 5px;
+    }
+  
+    .sort-desc::after {
+      content: '☝️';
+      margin-left: 5px;
+    }
 }

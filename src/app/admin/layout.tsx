@@ -9,14 +9,18 @@ export const metadata = {
 
 const Sidebar = () => {
   return (
-    <div className="flex flex-col w-64 h-screen px-4 py-8 text-lg bg-gray-100 border-r dark:bg-gray-800 dark:border-gray-600">
+    <div className="flex flex-col w-64 h-[1200px] px-4 py-8 text-lg bg-gray-100 border-r dark:bg-gray-800 dark:border-gray-600">
       <nav>
         <ul className="flex flex-col gap-3 pl-5 text-gray-200">
           <li>
-            <Link href="/admin">Admin Home</Link>
+            <Link className="hover:underline" href="/admin">
+              Home
+            </Link>
           </li>
           <li>
-            <Link href="/admin/new">Create New</Link>
+            <Link className="hover:underline" href="/admin/new">
+              Create New
+            </Link>
           </li>
         </ul>
       </nav>
@@ -39,9 +43,9 @@ export default async function AdminLayout({
   }
   return (
     <SessionProvider>
-      <div className="flex flex-row">
+      <div className="flex flex-row min-h-screen">
         <Sidebar />
-        <main className="w-full">{children}</main>
+        <main className="w-full bg-gray-200">{children}</main>
       </div>
     </SessionProvider>
   );

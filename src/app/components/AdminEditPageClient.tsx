@@ -1,56 +1,49 @@
-import prisma from '@/lib/prisma';
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
+'use client';
 
-const campusInfo = [
-  { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
-  { id: 'canadaCollege', value: 'Cañada College' },
-  { id: 'districtOffice', value: 'District Office' },
-  { id: 'skylineCollege', value: 'Skyline College' }
-];
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default async function AdminEditPage({ params: { id } }) {
-  const session = await getServerSession();
-  if (!session.user.email) {
-    redirect('/');
-  }
-  const indexItem = await prisma.indexitem.findUnique({
-    where: { id: Number(id) }
-  });
-  if (!indexItem) {
-    return <h1 className="text-red-700">No Item Found</h1>;
-  }
+const AdminEditPageClient = ({ indexItem, campusInfo }) => {
+  const [title, setTitle] = useState(indexItem.title);
+  const [url, setUrl] = useState(indexItem.url);
+  const [letter, setLetter] = useState(indexItem.letter);
+  const [campus, setCampus] = useState(indexItem.campus);
+  const router = useRouter();
 
-  async function updateIndexItemAction(formData: FormData): Promise<Response> {
-    'use server';
+  async function updateIndexItemAction(event) {
+    event.preventDefault();
 
-    const title = formData.get('title') as string;
-    const url = formData.get('url') as string;
-    const letter = formData.get('letter') as string;
-    const campus = formData.get('campus') as string;
-
-    await prisma.indexitem.update({
-      where: { id: indexItem?.id },
-      data: {
+    const response = await fetch('/api/update-index-item', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: indexItem.id,
         title,
         url,
         letter,
         campus
-      }
+      })
     });
 
-    redirect('/admin');
+    if (response.ok) {
+      router.push('/admin');
+    } else {
+      console.error('Failed to update item');
+    }
   }
 
   return (
     <div>
-      <h1 className="p-5 text-2xl font-bold bg-slate-200">
-        Edit Item: {indexItem.title} - (ID: {id}) - {indexItem.campus}
+      <h1 className="p-5 text-3xl font-bold bg-slate-200">
+        Edit Index Item: {indexItem.title} - (ID: {indexItem.id}) -{' '}
+        {indexItem.campus}
       </h1>
       <form
         method="post"
-        action={updateIndexItemAction}
-        className="flex flex-col max-w-2xl gap-3 p-5 bg-gray-50"
+        onSubmit={updateIndexItemAction}
+        className="flex flex-col max-w-2xl gap-3 p-5"
       >
         <label
           htmlFor="title"
@@ -62,8 +55,9 @@ export default async function AdminEditPage({ params: { id } }) {
           id="title"
           name="title"
           type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-          defaultValue={indexItem.title}
         />
         <label
           className="block text-sm font-medium leading-6 text-gray-900"
@@ -75,8 +69,9 @@ export default async function AdminEditPage({ params: { id } }) {
           id="url"
           name="url"
           type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
           className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-          defaultValue={indexItem.url}
         />
         <label
           className="block text-sm font-medium leading-6 text-gray-900"
@@ -88,8 +83,9 @@ export default async function AdminEditPage({ params: { id } }) {
           id="letter"
           type="text"
           name="letter"
+          value={letter}
+          onChange={(e) => setLetter(e.target.value)}
           className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-          defaultValue={indexItem.letter}
         />
         <label
           className="block text-sm font-medium leading-6 text-gray-900"
@@ -99,21 +95,22 @@ export default async function AdminEditPage({ params: { id } }) {
         </label>
         <fieldset className="mt-4">
           <div className="space-y-4">
-            {campusInfo.map((campus) => (
-              <div key={campus.id} className="flex items-center">
+            {campusInfo.map((campusItem) => (
+              <div key={campusItem.id} className="flex items-center">
                 <input
-                  id={campus.id}
+                  id={campusItem.id}
                   name="campus"
-                  value={campus.value}
+                  value={campusItem.value}
                   type="radio"
-                  defaultChecked={indexItem.campus === campus.value}
+                  checked={campus === campusItem.value}
+                  onChange={() => setCampus(campusItem.value)}
                   className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
                 />
                 <label
-                  htmlFor={campus.id}
+                  htmlFor={campusItem.id}
                   className="block ml-3 text-sm font-medium leading-6 text-gray-900"
                 >
-                  {campus.value}
+                  {campusItem.value}
                 </label>
               </div>
             ))}
@@ -130,4 +127,6 @@ export default async function AdminEditPage({ params: { id } }) {
       </form>
     </div>
   );
-}
+};
+
+export default AdminEditPageClient;

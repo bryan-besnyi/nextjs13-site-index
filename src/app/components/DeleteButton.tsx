@@ -24,8 +24,11 @@ export default function DeleteButton({ id, itemName }: DeleteButtonProps) {
   };
 
   return (
-    <button onClick={() => handleDelete(id, itemName)}>
-      Delete <span className="sr-only">{itemName}</span>
+    <button
+      className="px-3 py-1 text-sm font-semibold text-red-900 bg-red-200 rounded shadow-sm hover:bg-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+      onClick={() => handleDelete(id, itemName)}
+    >
+      Delete <span className="sr-only">{itemName}</span> 🗑️
     </button>
   );
 }
