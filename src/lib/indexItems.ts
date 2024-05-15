@@ -20,7 +20,8 @@ export async function searchIndexItems(query: string) {
     const results = await prisma.indexitem.findMany({
       where: {
         title: {
-          contains: query
+          contains: query,
+          mode: 'insensitive'
         }
       }
     });
