@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest, res: NextResponse) {
   try {
-    const { title, letter, url, campus } = await req.json(); // Parse JSON data from request body
+    const { title, letter, url, campus } = await req.json();
 
     const newIndexItem = await prisma.indexitem.create({
       data: {

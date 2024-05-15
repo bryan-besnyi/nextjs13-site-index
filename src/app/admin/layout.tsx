@@ -45,7 +45,7 @@ export default async function AdminLayout({
     <SessionProvider>
       <div className="flex flex-row min-h-screen">
         <Sidebar />
-        <main className="w-full bg-gray-200">{children}</main>
+        <main className="w-full">{children}</main>
       </div>
     </SessionProvider>
   );
