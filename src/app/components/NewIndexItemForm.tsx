@@ -34,10 +34,7 @@ const NewIndexItemForm: React.FC = () => {
   }
 
   return (
-    <form
-      className="flex flex-col max-w-2xl gap-3 bg-gray-50"
-      onSubmit={handleSubmit}
-    >
+    <form className="flex flex-col max-w-2xl gap-3 " onSubmit={handleSubmit}>
       <label
         htmlFor="title"
         className="block text-sm font-medium leading-6 text-gray-900"
