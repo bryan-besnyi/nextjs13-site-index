@@ -57,7 +57,6 @@ export default async function Home() {
             <OneLoginSignInButton />
           </Suspense>
         </div>
-        <p>Public Sites Found Here:</p>
         <div className="grid grid-cols-3 gap-2 text-white">
           <Button color="can">
             <a
