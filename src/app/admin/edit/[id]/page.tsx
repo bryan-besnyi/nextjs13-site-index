@@ -50,7 +50,7 @@ export default async function AdminEditPage({ params: { id } }) {
       <form
         method="post"
         action={updateIndexItemAction}
-        className="flex flex-col max-w-2xl gap-3 p-5 bg-gray-50"
+        className="flex flex-col max-w-2xl gap-3 p-5 "
       >
         <label
           htmlFor="title"

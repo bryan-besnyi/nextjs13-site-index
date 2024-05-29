@@ -3,7 +3,15 @@ import prisma from './prisma';
 
 export async function getIndexItems() {
   try {
-    const indexItems = await prisma.indexitem.findMany();
+    const indexItems = await prisma.indexitem.findMany({
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        letter: true,
+        campus: true
+      }
+    });
     return { indexItems };
   } catch (error) {
     return { error };
@@ -15,14 +23,24 @@ export async function getIndexItems() {
  * @param query - The search query.
  * @returns An object containing the search results or an error.
  */
-export async function searchIndexItems(query: string) {
+export async function searchIndexItems(query: string, campus: string) {
   try {
     const results = await prisma.indexitem.findMany({
       where: {
-        title: {
-          contains: query,
-          mode: 'insensitive'
-        }
+        AND: [
+          {
+            title: {
+              contains: query,
+              mode: 'insensitive'
+            }
+          },
+          {
+            campus: {
+              equals: campus,
+              mode: 'insensitive'
+            }
+          }
+        ]
       }
     });
     return { results };

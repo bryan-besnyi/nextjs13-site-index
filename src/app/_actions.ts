@@ -64,6 +64,7 @@ export async function deleteIndexItemAction(id: string) {
       throw error;
     }
     console.log('Deleted item in action:', deletedItem);
+    revalidatePath('/admin');
     return { deletedItem };
   } catch (error) {
     console.error('Error in deleteIndexItemAction:', error);

@@ -1,5 +1,9 @@
 import NewIndexItemForm from '../../components/NewIndexItemForm';
 
+export const metadata = {
+  title: 'Create New Index Item | Site Index'
+};
+
 export default function NewIndexItemPage() {
   return (
     <div>
