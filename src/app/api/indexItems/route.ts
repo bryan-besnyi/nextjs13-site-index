@@ -37,8 +37,12 @@ export async function GET(req: NextRequest) {
       'crawler',
       'spider'
     ];
-    if (blockedUserAgents.some((ua) => userAgent.includes(ua))) {
-      console.log(`Blocked User-Agent: ${userAgent}`);
+    // Block empty or suspicious User-Agents
+    if (
+      !userAgent ||
+      blockedUserAgents.some((ua) => userAgent.toLowerCase().includes(ua))
+    ) {
+      console.log(`Blocked IP: ${ip}, User-Agent: ${userAgent}`);
       return new NextResponse(JSON.stringify({ error: 'Blocked User-Agent' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
