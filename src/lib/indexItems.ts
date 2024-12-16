@@ -23,26 +23,32 @@ export async function getIndexItems() {
  * @param query - The search query.
  * @returns An object containing the search results or an error.
  */
-export async function searchIndexItems(query: string, campus: string) {
+export async function searchIndexItems(query: string, campus?: string) {
   try {
+    const conditions: any = [
+      {
+        title: {
+          contains: query,
+          mode: 'insensitive'
+        }
+      }
+    ];
+
+    if (campus) {
+      conditions.push({
+        campus: {
+          equals: campus,
+          mode: 'insensitive'
+        }
+      });
+    }
+
     const results = await prisma.indexitem.findMany({
       where: {
-        AND: [
-          {
-            title: {
-              contains: query,
-              mode: 'insensitive'
-            }
-          },
-          {
-            campus: {
-              equals: campus,
-              mode: 'insensitive'
-            }
-          }
-        ]
+        AND: conditions
       }
     });
+
     return { results };
   } catch (error) {
     return { error };

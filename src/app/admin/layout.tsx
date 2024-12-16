@@ -42,10 +42,6 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  /**
-   * Retrieves the server session.
-   * @returns {Promise<Session>} A promise that resolves to the server session.
-   */
   const session = await getServerSession();
   if (!session?.user?.email) {
     redirect('/');

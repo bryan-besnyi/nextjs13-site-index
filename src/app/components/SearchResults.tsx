@@ -5,7 +5,7 @@ import { searchIndexItems } from '@/lib/indexItems';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import TableContent from './SearchResultTableBody';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { MinusCircle, Search } from 'lucide-react';
 
 const campusInfo = [
   { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
@@ -14,8 +14,15 @@ const campusInfo = [
   { id: 'skylineCollege', value: 'Skyline College' }
 ];
 
+type SearchResultType = {
+  id?: number;
+  title?: string;
+  letter?: string;
+  campus?: string;
+};
+
 const SearchResults = () => {
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<SearchResultType[]>([]);
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
   const [selectedCampus, setSelectedCampus] = useState('');
 
@@ -37,40 +44,40 @@ const SearchResults = () => {
     }
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const query = (data.get('query') as string) || '';
+    const campusParam = selectedCampus || '';
 
-    // Check if the query is "null" and no campus is selected, then fetch all items
-    if ((query === 'null' || query === '') && !selectedCampus) {
-      fetchAllItems();
-    } else {
-      try {
-        const response = await searchIndexItems(
-          query || undefined,
-          selectedCampus
-        );
-        const results = response.results;
-        setSearchResults(sortArray(results));
-      } catch (error) {
-        console.error('Failed to search index items:', error);
-      }
+    console.log('handleSubmit called');
+    console.log('Query:', query);
+    console.log('Selected Campus:', selectedCampus);
+    console.log('Campus Param:', campusParam);
+
+    try {
+      const response = await searchIndexItems(query, campusParam);
+      console.log('Response:', response);
+      const results = response.results;
+      setSearchResults(sortArray(results ?? []));
+    } catch (error) {
+      console.error('Failed to search index items:', error);
     }
   }
 
-  function sortArray(array) {
+  function sortArray(array: SearchResultType[]) {
     const sortedArray = [...array];
     sortedArray.sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
+      const key = sortConfig.key as keyof SearchResultType;
+      let aValue = a[key];
+      let bValue = b[key];
 
-      if (sortConfig.key === 'id') {
+      if (key === 'id') {
         aValue = Number(aValue);
         bValue = Number(bValue);
       } else {
-        aValue = aValue.toString().toLowerCase();
-        bValue = bValue.toString().toLowerCase();
+        aValue = aValue?.toString().toLowerCase() ?? '';
+        bValue = bValue?.toString().toLowerCase() ?? '';
       }
 
       if (aValue < bValue) {
@@ -84,7 +91,7 @@ const SearchResults = () => {
     return sortedArray;
   }
 
-  function requestSort(key) {
+  function requestSort(key: keyof SearchResultType) {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
@@ -114,12 +121,13 @@ const SearchResults = () => {
               type="text"
               name="query"
               id="query"
-              className="bg-white max-w-3xl block flex-1 py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 bg-transparent border border-gray-300 rounded-md focus:ring-0 sm:text-sm sm:leading-6"
+              className="bg-white max-w-3xl block flex-1 py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md focus:ring-0 sm:text-sm sm:leading-6"
             />
             <Button variant="default" type="submit">
               Search <Search className="w-4 h-4 ml-2" />
             </Button>
           </div>
+
           <fieldset className="max-w-3xl mt-4 shadow-sm ">
             <div className="grid grid-cols-4 px-4 py-2 bg-white border border-gray-300 rounded-sm">
               {campusInfo.map((campus) => (
@@ -143,14 +151,16 @@ const SearchResults = () => {
               ))}
             </div>
           </fieldset>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setSelectedCampus('');
-            }}
-          >
-            Clear Filters
-          </Button>
+          <div className="flex justify-end max-w-3xl mt-2 text-gray-600">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSelectedCampus('');
+              }}
+            >
+              Clear Filters <MinusCircle className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
         </div>
       </form>
       <ScrollArea className="mx-5 mt-5 border rounded-md bg-white h-[calc(100vh-375px)] ">

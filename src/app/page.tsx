@@ -1,13 +1,5 @@
 import OneLoginSignInButton from './components/SignInButton';
-import { Suspense } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from './components/ui/card';
+import { Card, CardContent, CardFooter, CardTitle } from './components/ui/card';
 
 export default async function Home() {
   return (
@@ -15,7 +7,7 @@ export default async function Home() {
       <Card className="text-center pt-8 bg-slate-50">
         <CardTitle className="py-8">Site Index Admin</CardTitle>
         <CardContent className="max-w-md">
-          Sign in with your OneLogin account to access the Site Index app.
+          Sign in with your Staff OneLogin account to manage the Site Index app.
         </CardContent>
         <CardFooter className="flex justify-center">
           <OneLoginSignInButton />

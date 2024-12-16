@@ -9,11 +9,15 @@ const campusInfo = [
   { id: 'skylineCollege', value: 'Skyline College' }
 ];
 
-export default async function AdminEditPage({ params: { id } }) {
-  const session = await getServerSession();
-  if (!session.user.email) {
-    redirect('/');
-  }
+interface AdminEditPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default async function AdminEditPage({
+  params: { id }
+}: AdminEditPageProps) {
   const indexItem = await prisma.indexitem.findUnique({
     where: { id: Number(id) }
   });
