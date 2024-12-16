@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { searchIndexItems } from '@/lib/indexItems';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import TableContent from './SearchResultTableBody';
 import { Button } from '@/components/ui/button';
 import { MinusCircle, Search } from 'lucide-react';
+import { FixedSizeList as List } from 'react-window';
+import TableHeader from './TableHeader';
+import TableRow from './TableRow';
 
 const campusInfo = [
   { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
@@ -15,10 +17,11 @@ const campusInfo = [
 ];
 
 type SearchResultType = {
-  id?: number;
-  title?: string;
-  letter?: string;
-  campus?: string;
+  id: number;
+  title: string;
+  letter: string;
+  campus: string;
+  url: string;
 };
 
 const SearchResults = () => {
@@ -50,14 +53,8 @@ const SearchResults = () => {
     const query = (data.get('query') as string) || '';
     const campusParam = selectedCampus || '';
 
-    console.log('handleSubmit called');
-    console.log('Query:', query);
-    console.log('Selected Campus:', selectedCampus);
-    console.log('Campus Param:', campusParam);
-
     try {
       const response = await searchIndexItems(query, campusParam);
-      console.log('Response:', response);
       const results = response.results;
       setSearchResults(sortArray(results ?? []));
     } catch (error) {
@@ -91,20 +88,34 @@ const SearchResults = () => {
     return sortedArray;
   }
 
-  function requestSort(key: keyof SearchResultType) {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  }
+  const requestSort = useCallback(
+    (key: keyof SearchResultType) => {
+      let direction = 'asc';
+      if (sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+      }
+      setSortConfig({ key, direction });
+    },
+    [sortConfig]
+  );
 
-  const getClassNamesFor = (key) => {
-    if (sortConfig.key === key) {
-      return sortConfig.direction === 'asc' ? 'sort-asc' : 'sort-desc';
-    }
-    return '';
-  };
+  const getClassNamesFor = useCallback(
+    (key: string) => {
+      if (sortConfig.key === key) {
+        return sortConfig.direction === 'asc' ? 'sort-asc' : 'sort-desc';
+      }
+      return '';
+    },
+    [sortConfig]
+  );
+
+  const rowRenderer = useCallback(
+    ({ index, style }) => {
+      const item = searchResults[index];
+      return <TableRow key={item.id} item={item} style={style} />;
+    },
+    [searchResults]
+  );
 
   return (
     <>
@@ -163,43 +174,21 @@ const SearchResults = () => {
           </div>
         </div>
       </form>
-      <ScrollArea className="mx-5 mt-5 border rounded-md bg-white h-[calc(100vh-375px)] ">
-        <table className="min-w-full divide-y divide-gray-300 table-fixed">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="w-1/12 py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 cursor-pointer sm:pl-6"
-                onClick={() => requestSort('id')}
-              >
-                ID <span className={getClassNamesFor('id')}></span>
-              </th>
-              <th
-                className="w-4/12 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                onClick={() => requestSort('title')}
-              >
-                Title <span className={getClassNamesFor('title')}></span>
-              </th>
-              <th
-                className="w-1/12 py-3.5 text-center text-sm font-semibold text-gray-900 cursor-pointer"
-                onClick={() => requestSort('letter')}
-              >
-                Letter <span className={getClassNamesFor('letter')}></span>
-              </th>
-              <th
-                className="w-3/12 py-3.5 text-center text-sm font-semibold text-gray-900 cursor-pointer"
-                onClick={() => requestSort('campus')}
-              >
-                Campus <span className={getClassNamesFor('campus')}></span>
-              </th>
-              <th className="w-3/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                Actions{' '}
-                <span className="text-gray-500">(hover row to view)</span>
-              </th>
-            </tr>
-          </thead>
-          <TableContent searchResults={searchResults} />
-        </table>
+      <ScrollArea className="mx-5 mt-5 border rounded-md bg-white h-[calc(100vh-375px)]">
+        <div className="min-w-full divide-y divide-gray-300">
+          <TableHeader
+            requestSort={requestSort}
+            getClassNamesFor={getClassNamesFor}
+          />
+          <List
+            height={window.innerHeight - 375}
+            itemCount={searchResults.length}
+            itemSize={50}
+            width="100%"
+          >
+            {rowRenderer}
+          </List>
+        </div>
         <ScrollBar orientation="vertical" />
       </ScrollArea>
     </>

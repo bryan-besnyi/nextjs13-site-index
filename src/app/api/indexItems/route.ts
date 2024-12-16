@@ -6,10 +6,9 @@ import { Ratelimit } from '@upstash/ratelimit';
 const prisma = new PrismaClient();
 const CACHE_TTL = 60 * 60; // 1 hour in seconds
 
-// Create a new ratelimiter, that allows 5 requests per 10 seconds
 const ratelimit = new Ratelimit({
   redis: kv,
-  limiter: Ratelimit.slidingWindow(5, '10 s')
+  limiter: Ratelimit.slidingWindow(10, '30 s')
 });
 
 export async function GET(req: NextRequest) {
