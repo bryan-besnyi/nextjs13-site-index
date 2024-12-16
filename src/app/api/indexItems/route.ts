@@ -8,17 +8,48 @@ const CACHE_TTL = 60 * 60; // 1 hour in seconds
 
 const ratelimit = new Ratelimit({
   redis: kv,
-  limiter: Ratelimit.slidingWindow(10, '30 s')
+  limiter: Ratelimit.slidingWindow(5, '10 s')
 });
 
 export async function GET(req: NextRequest) {
   try {
-    // Apply rate limiting
+    const userAgent = req.headers.get('user-agent') || '';
     const ip = req.ip ?? '127.0.0.1';
-    const { success } = await ratelimit.limit(ip);
+    const compositeKey = `${ip}:${userAgent}`;
+
+    // Block outdated/suspicious User-Agent
+    const blockedUserAgents = [
+      'MSIE 7.0',
+      'Windows NT 5.1',
+      'MSIE 6.0',
+      'Windows NT 5.0',
+      'Mozilla/4.0',
+      'curl',
+      'wget',
+      'python-requests',
+      'httpclient',
+      'libwww-perl',
+      'Go-http-client',
+      'Java/',
+      'Apache-HttpClient',
+      'Scrapy',
+      'bot',
+      'crawler',
+      'spider'
+    ];
+    if (blockedUserAgents.some((ua) => userAgent.includes(ua))) {
+      console.log(`Blocked User-Agent: ${userAgent}`);
+      return new NextResponse(JSON.stringify({ error: 'Blocked User-Agent' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Apply rate limiting
+    const { success } = await ratelimit.limit(compositeKey);
 
     if (!success) {
-      console.log(`Rate limit exceeded for IP: ${ip}`);
+      console.log(`Rate limit exceeded for IP: ${ip} and UA: ${userAgent}`);
       return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
         status: 429,
         headers: { 'Content-Type': 'application/json' }
@@ -113,6 +144,8 @@ export async function GET(req: NextRequest) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Cache-Control':
+          'public, max-age=3600, s-maxage=3600, stale-while-revalidate',
         'Content-Type': 'application/json'
       }
     });
