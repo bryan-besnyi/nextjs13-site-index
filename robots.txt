@@ -1,2 +1,10 @@
 User-agent: *
 Disallow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Explicitly disallow indexing of edit routes
+Disallow: /admin/edit/
+
+# Prevent indexing of any URLs with query parameters
+Disallow: /*?*
