@@ -1,8 +1,9 @@
 User-agent: *
 
 Disallow: /
-Disallow: /admin/
-Disallow: /api/
+Disallow: /*
+Disallow: /admin/*
+Disallow: /api/*
 
 # Explicitly disallow indexing of edit routes
 Disallow: /admin/edit/
