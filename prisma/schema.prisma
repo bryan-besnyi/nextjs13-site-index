@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +5,103 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Appointment {
+  id         String              @id
+  name       String
+  startTime  String
+  endTime    String
+  dayOfWeek  DayOfWeek
+  category   AppointmentCategory @default(OFFICE_HOURS)
+  location   String?
+  doorcardId String
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime
+  Doorcard   Doorcard            @relation(fields: [doorcardId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([dayOfWeek])
+  @@index([doorcardId])
+  @@index([startTime])
+}
+
+model Doorcard {
+  id                String              @id
+  name              String
+  doorcardName      String
+  officeNumber      String
+  term              TermSeason
+  year              Int
+  college           College
+  isActive          Boolean             @default(false)
+  isPublic          Boolean             @default(false)
+  slug              String?             @unique
+  userId            String
+  termId            String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  Appointment       Appointment[]
+  Term              Term?               @relation(fields: [termId], references: [id])
+  User              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  DoorcardAnalytics DoorcardAnalytics[]
+  DoorcardMetrics   DoorcardMetrics?
+
+  @@unique([userId, college, term, year, isActive])
+  @@index([college])
+  @@index([term, year])
+  @@index([userId, createdAt])
+}
+
+model DoorcardAnalytics {
+  id         String         @id
+  doorcardId String
+  eventType  AnalyticsEvent
+  ipAddress  String?
+  userAgent  String?
+  referrer   String?
+  sessionId  String?
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+  Doorcard   Doorcard       @relation(fields: [doorcardId], references: [id], onDelete: Cascade)
+
+  @@index([doorcardId, createdAt])
+  @@index([doorcardId, eventType])
+  @@index([sessionId])
+}
+
+model DoorcardMetrics {
+  doorcardId    String    @id
+  totalViews    Int       @default(0)
+  uniqueViews   Int       @default(0)
+  totalPrints   Int       @default(0)
+  totalShares   Int       @default(0)
+  lastViewedAt  DateTime?
+  lastPrintedAt DateTime?
+  updatedAt     DateTime
+  Doorcard      Doorcard  @relation(fields: [doorcardId], references: [id], onDelete: Cascade)
+
+  @@index([lastViewedAt])
+  @@index([totalViews])
+  @@index([uniqueViews])
 }
 
 model indexitem {
@@ -18,4 +112,127 @@ model indexitem {
   campus    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Term {
+  id          String     @id
+  name        String     @unique
+  year        String
+  season      String
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean    @default(false)
+  isArchived  Boolean    @default(false)
+  isUpcoming  Boolean    @default(false)
+  archiveDate DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime
+  Doorcard    Doorcard[]
+
+  @@index([endDate])
+  @@index([isActive])
+  @@index([isArchived])
+  @@index([season])
+  @@index([startDate])
+  @@index([year])
+}
+
+model User {
+  id            String            @id
+  name          String?
+  firstName     String?
+  lastName      String?
+  title         String?
+  displayFormat DisplayNameFormat @default(FULL_NAME)
+  email         String            @unique
+  username      String?           @unique
+  password      String?
+  role          UserRole          @default(FACULTY)
+  college       College?
+  website       String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime
+  pronouns      String?
+  emailVerified DateTime?
+  image         String?
+  Account       Account[]
+  Doorcard      Doorcard[]
+  Session       Session[]
+
+  @@index([college])
+  @@index([createdAt])
+  @@index([email])
+  @@index([username])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum AnalyticsEvent {
+  VIEW
+  PRINT_PREVIEW
+  PRINT_DOWNLOAD
+  EDIT_STARTED
+  SHARE
+  SEARCH_RESULT
+}
+
+enum AppointmentCategory {
+  OFFICE_HOURS
+  IN_CLASS
+  LECTURE
+  LAB
+  HOURS_BY_ARRANGEMENT
+  REFERENCE
+  OTHER
+}
+
+enum College {
+  SKYLINE
+  CSM
+  CANADA
+  DISTRICT_OFFICE
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum DisplayNameFormat {
+  FULL_WITH_TITLE
+  LAST_WITH_TITLE
+  FIRST_INITIAL_LAST_WITH_TITLE
+  FIRST_INITIAL_LAST
+  FULL_NAME
+}
+
+enum TermSeason {
+  FALL
+  SPRING
+  SUMMER
+}
+
+enum UserRole {
+  FACULTY
+  ADMIN
+  STAFF
 }

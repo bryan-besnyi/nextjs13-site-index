@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "backup": "node scripts/backup-data.js",
+    "monitor": "node scripts/monitor-data.js",
+    "db:safe-reset": "npm run backup && npx prisma migrate reset",
+    "db:safe-push": "npm run backup && npx prisma db push"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.4.2",
@@ -39,6 +43,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.5",
     "react-window": "^1.8.10",
+    "sqlite3": "^5.1.7",
     "swr": "^2.2.5",
     "tailwind-merge": "^2.3.0",
     "tailwindcss": "3.3.2",
