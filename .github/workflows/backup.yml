@@ -1,9 +1,9 @@
-name: Daily Data Backup
+name: Frequent Data Backup
 
 on:
   schedule:
-    # Run daily at 2 AM UTC (adjust for your timezone)
-    - cron: '0 2 * * *'
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

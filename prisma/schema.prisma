@@ -112,6 +112,14 @@ model indexitem {
   campus    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Critical indexes for API performance
+  @@index([campus])
+  @@index([letter])
+  @@index([title])
+  @@index([campus, letter])
+  @@index([campus, title])
+  @@index([letter, title])
 }
 
 model Session {

@@ -1,278 +1,296 @@
 import { kv } from '@vercel/kv';
-import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
+import { prisma } from '@/lib/prisma-singleton';
+import { PerformanceMonitor, timeDbQuery, timeCacheOperation } from '@/lib/performance-monitor';
 
-const prisma = new PrismaClient();
-const CACHE_TTL = 60 * 60; // 1 hour in seconds
+// Optimized caching strategy
+const CACHE_TTL = 4 * 60 * 60; // 4 hours (more aggressive caching)
+const CACHE_PREFIX = 'api:v2:index:';
 
+// More permissive rate limiting for API consumers  
 const ratelimit = new Ratelimit({
   redis: kv,
-  limiter: Ratelimit.slidingWindow(5, '10 s')
+  limiter: Ratelimit.slidingWindow(20, '60 s') // 20/minute instead of 5/10s
 });
 
+// Campus mapping for backward compatibility
+const CAMPUS_MAP: Record<string, string> = {
+  'CSM': 'College of San Mateo',
+  'SKY': 'Skyline College', 
+  'CAN': 'Cañada College',
+  'CANADA': 'Cañada College',
+  'DO': 'District Office',
+  'DISTRICT': 'District Office'
+};
+
+// Optimized User-Agent validation
+const BLOCKED_PATTERNS = ['bot/', 'crawler/', 'scrapy', 'spider'];
+const isValidUserAgent = (ua: string): boolean => {
+  if (!ua || ua.length < 5) return false;
+  const lower = ua.toLowerCase();
+  return !BLOCKED_PATTERNS.some(pattern => lower.includes(pattern)) ||
+         lower.includes('fetch') || lower.includes('mozilla');
+};
+
 export async function GET(req: NextRequest) {
+  const perfMonitor = new PerformanceMonitor(req);
+  let dbQueryTime: number | undefined;
+  let cacheQueryTime: number | undefined;
+  let cacheHit = false;
+  
   try {
+    // Quick validation
     const userAgent = req.headers.get('user-agent') || '';
-    const ip = req.ip ?? '127.0.0.1';
-    const compositeKey = `${ip}:${userAgent}`;
-
-    // Block outdated/suspicious User-Agent
-    const blockedUserAgents = [
-      'MSIE 7.0',
-      'Windows NT 5.1',
-      'MSIE 6.0',
-      'Windows NT 5.0',
-      'Mozilla/4.0',
-      'curl',
-      'wget',
-      'python-requests',
-      'httpclient',
-      'libwww-perl',
-      'Go-http-client',
-      'Java/',
-      'Apache-HttpClient',
-      'Scrapy',
-      'bot',
-      'crawler',
-      'spider'
-    ];
-    // Block empty or suspicious User-Agents
-    if (
-      !userAgent ||
-      blockedUserAgents.some((ua) => userAgent.toLowerCase().includes(ua))
-    ) {
-      console.log(`Blocked IP: ${ip}, User-Agent: ${userAgent}`);
-      return new NextResponse(JSON.stringify({ error: 'Blocked User-Agent' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (!isValidUserAgent(userAgent)) {
+      return NextResponse.json({ error: 'Invalid User-Agent' }, { status: 403 });
     }
 
-    // Apply rate limiting
-    const { success } = await ratelimit.limit(compositeKey);
-
+    // Rate limiting with better IP detection
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+               req.headers.get('x-real-ip') || 
+               '127.0.0.1';
+    
+    const { success, limit, remaining } = await ratelimit.limit(ip);
     if (!success) {
-      console.log(`Rate limit exceeded for IP: ${ip} and UA: ${userAgent}`);
-      return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: 60 },
+        { 
+          status: 429,
+          headers: { 
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': '60'
+          }
+        }
+      );
     }
 
-    const url = req.nextUrl;
-    const campus = url.searchParams.get('campus') || '';
-    const letter = url.searchParams.get('letter') || '';
-    const search = url.searchParams.get('search') || '';
+    // Parse and normalize parameters
+    const params = req.nextUrl.searchParams;
+    let campus = params.get('campus') || '';
+    const letter = params.get('letter') || '';
+    const search = params.get('search') || '';
 
-    const cacheKey = `index:${campus}:${letter}:${search}`;
+    // Normalize campus codes
+    if (campus && CAMPUS_MAP[campus.toUpperCase()]) {
+      campus = CAMPUS_MAP[campus.toUpperCase()];
+    }
 
-    console.log(`Attempting to fetch data for key: ${cacheKey}`);
-
-    // Try to get data from Vercel KV
-    let cachedData = await kv.get(cacheKey);
-    console.log('Raw cached data:', cachedData);
+    // Optimized cache key
+    const cacheKey = `${CACHE_PREFIX}${campus}:${letter}:${search}`;
+    
+    // Try cache first with timing
     let indexItems;
-
-    if (!cachedData) {
-      console.log(`Cache miss for key: ${cacheKey}`);
-
-      const conditions: {
-        campus?: string;
-        letter?: { contains: string; mode: 'insensitive' };
-        OR?: { title: { contains: string; mode: 'insensitive' } }[];
-      } = {};
-      if (campus) conditions.campus = campus;
-      if (letter) conditions.letter = { contains: letter, mode: 'insensitive' };
-      if (search)
-        conditions.OR = [{ title: { contains: search, mode: 'insensitive' } }];
-
-      indexItems = await prisma.indexitem.findMany({
-        where: conditions,
-        orderBy: {
-          title: 'asc'
-        }
-      });
-
-      console.log(`Fetched ${indexItems.length} items from database`);
-
-      // Store in Vercel KV
-      await kv.set(cacheKey, JSON.stringify(indexItems), { ex: CACHE_TTL });
-      console.log(`Cached ${indexItems.length} items with key: ${cacheKey}`);
-    } else {
-      console.log(`Cache hit for key: ${cacheKey}`);
-      if (typeof cachedData === 'string') {
-        try {
-          indexItems = JSON.parse(cachedData);
-          console.log(`Retrieved ${indexItems.length} items from cache`);
-        } catch (parseError) {
-          console.error('Error parsing cached data:', parseError);
-          indexItems = await prisma.indexitem.findMany({
-            orderBy: {
-              title: 'asc'
-            }
-          });
-          console.log(
-            `Fetched ${indexItems.length} items from database after cache parse error`
-          );
-          await kv.set(cacheKey, JSON.stringify(indexItems), { ex: CACHE_TTL });
-          console.log(
-            `Re-cached ${indexItems.length} items with key: ${cacheKey}`
-          );
-        }
-      } else if (Array.isArray(cachedData)) {
-        indexItems = cachedData;
-        console.log(
-          `Retrieved ${indexItems.length} items from cache (already parsed)`
-        );
-      } else {
-        console.error('Unexpected cache data type:', typeof cachedData);
-        indexItems = await prisma.indexitem.findMany({
-          orderBy: {
-            title: 'asc'
+    try {
+      const { result: cached, cacheTime } = await timeCacheOperation(
+        () => kv.get(cacheKey),
+        'get'
+      );
+      cacheQueryTime = cacheTime;
+      
+      if (cached) {
+        cacheHit = true;
+        const metrics = perfMonitor.recordMetrics(200, {
+          cacheHit: true,
+          cacheQueryTime,
+          resultCount: Array.isArray(cached) ? cached.length : 0
+        });
+        
+        return NextResponse.json(cached, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=14400, s-maxage=14400',
+            'X-Cache': 'HIT',
+            'X-Response-Time': `${metrics.responseTime}ms`,
+            'X-Cache-Time': `${cacheQueryTime}ms`,
+            'X-RateLimit-Remaining': remaining.toString()
           }
         });
-        console.log(
-          `Fetched ${indexItems.length} items from database due to unexpected cache data`
-        );
-        await kv.set(cacheKey, JSON.stringify(indexItems), { ex: CACHE_TTL });
-        console.log(
-          `Re-cached ${indexItems.length} items with key: ${cacheKey}`
-        );
       }
+    } catch (cacheError) {
+      console.warn('Cache read failed:', cacheError);
     }
 
-    return new NextResponse(JSON.stringify(indexItems), {
-      status: 200,
+    // Optimized database query
+    const whereConditions: any = {};
+    if (campus) whereConditions.campus = campus;
+    if (letter) whereConditions.letter = { contains: letter, mode: 'insensitive' };
+    if (search) {
+      whereConditions.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { url: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    // Database query with timing
+    const { result, queryTime } = await timeDbQuery(
+      () => prisma.indexitem.findMany({
+        where: whereConditions,
+        orderBy: [
+          { title: 'asc' }
+        ],
+        // Only select needed fields to reduce payload
+        select: {
+          id: true,
+          title: true,
+          letter: true,
+          url: true,
+          campus: true
+        }
+      }),
+      'indexItems-query'
+    );
+    
+    indexItems = result;
+    dbQueryTime = queryTime;
+
+    // Cache the results asynchronously (don't wait)
+    timeCacheOperation(
+      () => kv.set(cacheKey, indexItems, { ex: CACHE_TTL }),
+      'set'
+    ).catch(err => console.warn('Cache write failed:', err));
+
+    // Record final metrics
+    const metrics = perfMonitor.recordMetrics(200, {
+      cacheHit: false,
+      dbQueryTime,
+      cacheQueryTime,
+      resultCount: indexItems.length
+    });
+    
+    return NextResponse.json(indexItems, {
       headers: {
+        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Cache-Control':
-          'public, max-age=3600, s-maxage=3600, stale-while-revalidate',
-        'Content-Type': 'application/json'
+        'Cache-Control': 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400',
+        'X-Cache': 'MISS',
+        'X-Response-Time': `${metrics.responseTime}ms`,
+        'X-DB-Time': `${dbQueryTime}ms`,
+        'X-Cache-Time': cacheQueryTime ? `${cacheQueryTime}ms` : 'N/A',
+        'X-Results-Count': indexItems.length.toString(),
+        'X-RateLimit-Remaining': remaining.toString()
       }
     });
+
   } catch (error) {
-    console.error('Request error', error);
-    return new NextResponse(JSON.stringify({ error: 'Error fetching data' }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    // Apply rate limiting
-    const ip = req.ip ?? '127.0.0.1';
-    const { success } = await ratelimit.limit(ip);
-
-    if (!success) {
-      console.log(`Rate limit exceeded for IP: ${ip}`);
-      return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const { title, letter, url, campus } = await req.json();
-
-    const newIndexItem = await prisma.indexitem.create({
-      data: {
-        title: title,
-        letter: letter,
-        url: url,
-        campus: campus
-      }
-    });
-
-    console.log(`Created new index item: ${JSON.stringify(newIndexItem)}`);
-
-    // Invalidate cache
-    const cacheKey = `index:${campus}:${letter}:`;
-    await kv.del(cacheKey);
-    console.log(`Invalidated cache for key: ${cacheKey}`);
-
-    // Re-cache with the new item
-    const updatedItems = await prisma.indexitem.findMany({
-      where: { campus, letter: { startsWith: letter } },
-      orderBy: { title: 'asc' }
-    });
-    await kv.set(cacheKey, JSON.stringify(updatedItems), { ex: CACHE_TTL });
-    console.log(`Re-cached ${updatedItems.length} items for key: ${cacheKey}`);
-
-    return new NextResponse(JSON.stringify(newIndexItem), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    console.error('Error creating index item', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Error creating new index item' }),
-      {
+    console.error('API Error:', error);
+    
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        timestamp: new Date().toISOString()
+      },
+      { 
         status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }
     );
   }
 }
 
-export async function DELETE(req: NextRequest) {
+// Optimized POST with better cache invalidation
+export async function POST(req: NextRequest) {
   try {
-    // Apply rate limiting
-    const ip = req.ip ?? '127.0.0.1';
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
     const { success } = await ratelimit.limit(ip);
 
     if (!success) {
-      console.log(`Rate limit exceeded for IP: ${ip}`);
-      return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return NextResponse.json(
+        { error: 'Rate limit exceeded' },
+        { status: 429 }
+      );
+    }
+
+    const { title, letter, url, campus } = await req.json();
+
+    // Input validation
+    if (!title || !letter || !url || !campus) {
+      return NextResponse.json(
+        { error: 'Missing required fields: title, letter, url, campus' },
+        { status: 400 }
+      );
+    }
+
+    const newItem = await prisma.indexitem.create({
+      data: { title, letter, url, campus },
+      select: {
+        id: true,
+        title: true,
+        letter: true,
+        url: true,
+        campus: true
+      }
+    });
+
+    // Smart cache invalidation - clear related cache patterns
+    const patterns = [
+      `${CACHE_PREFIX}${campus}:${letter}:`,
+      `${CACHE_PREFIX}${campus}::`,
+      `${CACHE_PREFIX}:${letter}:`,
+      `${CACHE_PREFIX}::`
+    ];
+    
+    // Invalidate in parallel (don't wait)
+    patterns.forEach(pattern => {
+      kv.del(pattern).catch(err => console.warn('Cache invalidation failed:', err));
+    });
+
+    return NextResponse.json(newItem, {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('POST Error:', error);
+    return NextResponse.json(
+      { error: 'Error creating item' },
+      { status: 500 }
+    );
+  }
+}
+
+// Optimized DELETE
+export async function DELETE(req: NextRequest) {
+  try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
     }
 
     const id = req.nextUrl.searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    }
 
     const deletedItem = await prisma.indexitem.delete({
       where: { id: Number(id) }
     });
 
-    console.log(`Deleted index item: ${JSON.stringify(deletedItem)}`);
-
-    // Invalidate cache
-    const cacheKey = `index:${deletedItem.campus}:${deletedItem.letter}:`;
-    await kv.del(cacheKey);
-    console.log(`Invalidated cache for key: ${cacheKey}`);
-
-    // Re-cache with updated items
-    const updatedItems = await prisma.indexitem.findMany({
-      where: {
-        campus: deletedItem.campus,
-        letter: { startsWith: deletedItem.letter }
-      },
-      orderBy: { title: 'asc' }
+    // Clear all related cache patterns
+    const patterns = [
+      `${CACHE_PREFIX}${deletedItem.campus}:${deletedItem.letter}:`,
+      `${CACHE_PREFIX}${deletedItem.campus}::`,
+      `${CACHE_PREFIX}:${deletedItem.letter}:`,
+      `${CACHE_PREFIX}::`
+    ];
+    
+    patterns.forEach(pattern => {
+      kv.del(pattern).catch(err => console.warn('Cache invalidation failed:', err));
     });
-    await kv.set(cacheKey, JSON.stringify(updatedItems), { ex: CACHE_TTL });
-    console.log(`Re-cached ${updatedItems.length} items for key: ${cacheKey}`);
 
-    return new NextResponse(null, {
-      status: 204
-    });
+    return new NextResponse(null, { status: 204 });
+
   } catch (error) {
-    console.error('Error deleting index item', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Error deleting index item' }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
+    console.error('DELETE Error:', error);
+    return NextResponse.json(
+      { error: 'Error deleting item' },
+      { status: 500 }
     );
   }
 }

@@ -1,5 +1,5 @@
 'use server';
-import prisma from './prisma';
+import { prisma } from './prisma-singleton';
 
 export async function getIndexItems() {
   try {

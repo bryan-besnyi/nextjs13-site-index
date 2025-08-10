@@ -1,137 +1,67 @@
-import prisma from '@/lib/prisma';
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
+import { prisma } from '@/lib/prisma-singleton';
+import { notFound } from 'next/navigation';
+import EditIndexItemForm from '@/components/admin/EditIndexItemForm';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle } from 'lucide-react';
 
-const campusInfo = [
-  { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
-  { id: 'canadaCollege', value: 'Cañada College' },
-  { id: 'districtOffice', value: 'District Office' },
-  { id: 'skylineCollege', value: 'Skyline College' }
-];
+export const metadata = {
+  title: 'Edit Index Item | Admin Dashboard',
+  description: 'Edit index item details'
+};
 
 interface AdminEditPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function AdminEditPage({
-  params: { id }
+  params
 }: AdminEditPageProps) {
-  const indexItem = await prisma.indexitem.findUnique({
-    where: { id: Number(id) }
-  });
-  if (!indexItem) {
-    return <h1 className="text-red-700">No Item Found</h1>;
-  }
+  const { id } = await params;
+  
+  let indexItem = null;
+  let hasError = false;
+  let errorMessage = '';
 
-  async function updateIndexItemAction(formData: FormData): Promise<Response> {
-    'use server';
-
-    const title = formData.get('title') as string;
-    const url = formData.get('url') as string;
-    const letter = formData.get('letter') as string;
-    const campus = formData.get('campus') as string;
-
-    await prisma.indexitem.update({
-      where: { id: indexItem?.id },
-      data: {
-        title,
-        url,
-        letter,
-        campus
-      }
+  try {
+    indexItem = await prisma.indexitem.findUnique({
+      where: { id: Number(id) }
     });
 
-    redirect('/admin');
+    if (!indexItem) {
+      notFound();
+    }
+  } catch (error) {
+    hasError = true;
+    errorMessage = error instanceof Error ? error.message : 'Failed to load item';
+    console.error('Edit page error:', error);
   }
 
-  return (
-    <div>
-      <h1 className="p-5 text-2xl font-bold bg-slate-200">
-        Edit Item: {indexItem.title} - (ID: {id}) - {indexItem.campus}
-      </h1>
-      <form
-        method="post"
-        action={updateIndexItemAction}
-        className="flex flex-col max-w-2xl gap-3 p-5 "
-      >
-        <label
-          htmlFor="title"
-          className="block text-sm font-medium leading-6 text-gray-900"
-        >
-          Title
-        </label>
-        <input
-          id="title"
-          name="title"
-          type="text"
-          className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-          defaultValue={indexItem.title}
-        />
-        <label
-          className="block text-sm font-medium leading-6 text-gray-900"
-          htmlFor="url"
-        >
-          URL
-        </label>
-        <input
-          id="url"
-          name="url"
-          type="text"
-          className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-          defaultValue={indexItem.url}
-        />
-        <label
-          className="block text-sm font-medium leading-6 text-gray-900"
-          htmlFor="letter"
-        >
-          Letter
-        </label>
-        <input
-          id="letter"
-          type="text"
-          name="letter"
-          className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-          defaultValue={indexItem.letter}
-        />
-        <label
-          className="block text-sm font-medium leading-6 text-gray-900"
-          htmlFor="campus"
-        >
-          Campus
-        </label>
-        <fieldset className="mt-4">
-          <div className="space-y-4">
-            {campusInfo.map((campus) => (
-              <div key={campus.id} className="flex items-center">
-                <input
-                  id={campus.id}
-                  name="campus"
-                  value={campus.value}
-                  type="radio"
-                  defaultChecked={indexItem.campus === campus.value}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
-                />
-                <label
-                  htmlFor={campus.id}
-                  className="block ml-3 text-sm font-medium leading-6 text-gray-900"
-                >
-                  {campus.value}
-                </label>
-              </div>
-            ))}
-          </div>
-        </fieldset>
-        <div className="mt-5">
-          <button
-            className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-            type="submit"
-          >
-            Update Index Item
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+  if (hasError) {
+    return (
+      <div className="max-w-2xl mx-auto mt-8">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-800">
+              <AlertCircle className="h-5 w-5" />
+              Error Loading Item
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-700">{errorMessage}</p>
+            <p className="text-sm text-red-600 mt-2">
+              The item with ID &ldquo;{id}&rdquo; could not be loaded. Please check the ID and try again.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!indexItem) {
+    return notFound();
+  }
+
+  return <EditIndexItemForm item={indexItem} />;
 }

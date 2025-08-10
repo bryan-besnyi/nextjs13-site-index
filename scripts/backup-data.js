@@ -6,9 +6,10 @@ const prisma = new PrismaClient()
 
 async function backupData() {
   try {
-    console.log('🔄 Starting daily backup...')
+    console.log('🔄 Starting automated backup...')
     
-    const timestamp = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    const now = new Date()
+    const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 16) // YYYY-MM-DDTHH-MM
     const backupDir = path.join(process.cwd(), 'backups')
     
     // Ensure backup directory exists
@@ -43,15 +44,15 @@ async function backupData() {
     console.log(`📄 JSON: ${backupFile}`)
     console.log(`📊 CSV: ${csvFile}`)
     
-    // Clean up old backups (keep last 30 days)
+    // Clean up old backups (keep last 7 days for 30-min intervals)
     const files = fs.readdirSync(backupDir)
     const oldBackups = files
       .filter(file => file.startsWith('backup-') && file.endsWith('.json'))
       .map(file => ({
         name: file,
-        date: new Date(file.replace('backup-', '').replace('.json', ''))
+        date: fs.statSync(path.join(backupDir, file)).mtime
       }))
-      .filter(file => (Date.now() - file.date.getTime()) > 30 * 24 * 60 * 60 * 1000)
+      .filter(file => (Date.now() - file.date.getTime()) > 7 * 24 * 60 * 60 * 1000)
     
     oldBackups.forEach(backup => {
       fs.unlinkSync(path.join(backupDir, backup.name))

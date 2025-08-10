@@ -1,0 +1,45 @@
+/* Force all text to be dark on the signin page */
+html:has(.signin-page),
+body:has(.signin-page) {
+  color: #000000 !important;
+}
+
+.signin-page,
+.signin-page *:not(.text-primary-foreground) {
+  color: #000000 !important;
+}
+
+.signin-page h1,
+.signin-page h2,
+.signin-page h3,
+.signin-page h4,
+.signin-page h5,
+.signin-page h6 {
+  color: #111827 !important;
+}
+
+.signin-page p {
+  color: #4B5563 !important;
+}
+
+.signin-page a {
+  color: #2563eb !important;
+}
+
+.signin-page a:hover {
+  color: #1D4ED8 !important;
+}
+
+/* Ensure the button text stays white */
+.signin-page button.bg-primary {
+  color: #ffffff !important;
+}
+
+/* Fix the error message colors */
+.signin-page .text-red-700 {
+  color: #b91c1c !important;
+}
+
+.signin-page .text-red-600 {
+  color: #dc2626 !important;
+}

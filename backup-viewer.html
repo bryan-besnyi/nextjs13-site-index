@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMCCCD Backup Viewer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #4f46e5;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+        .stat-label {
+            color: #64748b;
+            margin-top: 5px;
+        }
+        .controls {
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .file-input {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+        }
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border-top: 1px solid #e2e8f0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        tr:hover {
+            background: #f8fafc;
+        }
+        .campus-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        .campus-csm { background: #dbeafe; color: #1e40af; }
+        .campus-skyline { background: #dcfce7; color: #16a34a; }
+        .campus-canada { background: #fef3c7; color: #d97706; }
+        .campus-district { background: #e7e5e4; color: #57534e; }
+        .letter-badge {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #4f46e5;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .url-link {
+            color: #4f46e5;
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .url-link:hover {
+            text-decoration: underline;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ SMCCCD Backup Viewer</h1>
+            <p>View and search your database backups</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number" id="totalRecords">-</div>
+                <div class="stat-label">Total Records</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="backupDate">-</div>
+                <div class="stat-label">Backup Date</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="campusCount">-</div>
+                <div class="stat-label">Campuses</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <input type="file" id="fileInput" class="file-input" accept=".json" />
+            <input type="text" id="searchInput" class="search-input" placeholder="Search by title, campus, or URL..." />
+        </div>
+        
+        <div class="table-container">
+            <div class="loading" id="loading">📁 Select a backup JSON file to view</div>
+            <table id="dataTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Letter</th>
+                        <th>Title</th>
+                        <th>Campus</th>
+                        <th>URL</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+        document.getElementById('searchInput').addEventListener('input', handleSearch);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    allData = backupData.indexItems || [];
+                    filteredData = [...allData];
+                    
+                    updateStats(backupData);
+                    renderTable();
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('dataTable').style.display = 'table';
+                } catch (error) {
+                    alert('Error reading backup file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function updateStats(backupData) {
+            document.getElementById('totalRecords').textContent = backupData.totalRecords || allData.length;
+            document.getElementById('backupDate').textContent = new Date(backupData.backupDate).toLocaleDateString();
+            
+            const campuses = [...new Set(allData.map(item => item.campus))];
+            document.getElementById('campusCount').textContent = campuses.length;
+        }
+
+        function handleSearch(event) {
+            const searchTerm = event.target.value.toLowerCase();
+            if (searchTerm === '') {
+                filteredData = [...allData];
+            } else {
+                filteredData = allData.filter(item => 
+                    item.title.toLowerCase().includes(searchTerm) ||
+                    item.campus.toLowerCase().includes(searchTerm) ||
+                    item.url.toLowerCase().includes(searchTerm)
+                );
+            }
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            filteredData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.id}</td>
+                    <td><span class="letter-badge">${item.letter}</span></td>
+                    <td><strong>${item.title}</strong></td>
+                    <td><span class="campus-badge campus-${getCampusClass(item.campus)}">${item.campus}</span></td>
+                    <td><a href="${item.url}" target="_blank" class="url-link">${item.url}</a></td>
+                    <td>${new Date(item.createdAt).toLocaleDateString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getCampusClass(campus) {
+            const campusLower = campus.toLowerCase();
+            if (campusLower.includes('csm') || campusLower.includes('san mateo')) return 'csm';
+            if (campusLower.includes('skyline')) return 'skyline';
+            if (campusLower.includes('canada')) return 'canada';
+            if (campusLower.includes('district')) return 'district';
+            return 'district';
+        }
+    </script>
+</body>
+</html>
