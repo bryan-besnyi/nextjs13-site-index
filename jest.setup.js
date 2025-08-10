@@ -52,20 +52,69 @@ process.env = {
   NODE_ENV: 'test',
 }
 
-// Mock window.URL methods used in export functionality
-Object.defineProperty(global, 'URL', {
-  value: {
-    createObjectURL: jest.fn(() => 'mock-url'),
-    revokeObjectURL: jest.fn(),
-  },
-  writable: true,
-});
+// Mock URL class for Node environment
+if (typeof URL === 'undefined') {
+  global.URL = class URL {
+    constructor(input, base) {
+      if (typeof input !== 'string') {
+        throw new TypeError('Invalid URL');
+      }
+      
+      // Handle absolute URLs
+      if (input.startsWith('http://') || input.startsWith('https://')) {
+        this.href = input;
+        const url = new require('url').URL(input);
+        this.origin = url.origin;
+        this.pathname = url.pathname;
+        this.search = url.search;
+        this.protocol = url.protocol;
+        this.host = url.host;
+        this.hostname = url.hostname;
+        this.port = url.port;
+      } else {
+        // Handle relative URLs with base
+        if (base) {
+          const baseUrl = new require('url').URL(base);
+          const resolved = new require('url').URL(input, base);
+          this.href = resolved.href;
+          this.origin = resolved.origin;
+          this.pathname = resolved.pathname;
+          this.search = resolved.search;
+          this.protocol = resolved.protocol;
+          this.host = resolved.host;
+          this.hostname = resolved.hostname;
+          this.port = resolved.port;
+        } else {
+          this.href = input;
+          this.origin = '';
+          this.pathname = input;
+          this.search = '';
+          this.protocol = '';
+          this.host = '';
+          this.hostname = '';
+          this.port = '';
+        }
+      }
+    }
+    
+    static createObjectURL = jest.fn(() => 'mock-url');
+    static revokeObjectURL = jest.fn();
+  };
+}
 
-// Mock HTMLElement methods
-Object.defineProperty(HTMLElement.prototype, 'click', {
-  value: jest.fn(),
-  writable: true,
-});
+// Ensure URL.createObjectURL and revokeObjectURL are available
+if (global.URL && !global.URL.createObjectURL) {
+  global.URL.createObjectURL = jest.fn(() => 'mock-url');
+  global.URL.revokeObjectURL = jest.fn();
+}
+
+// Mock HTMLElement methods (only in jsdom environment)
+if (typeof HTMLElement !== 'undefined') {
+  Object.defineProperty(HTMLElement.prototype, 'click', {
+    value: jest.fn(),
+    writable: true,
+  });
+}
 
 // Add ResizeObserver mock for charts
 global.ResizeObserver = jest.fn().mockImplementation(() => ({

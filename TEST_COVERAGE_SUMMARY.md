@@ -22,7 +22,7 @@ This document provides a comprehensive analysis of the test coverage implemented
 
 ## Detailed Coverage Analysis
 
-### API Endpoints (90% Coverage) ✅
+### API Endpoints (31% Coverage) ⚠️
 
 #### `/api/indexItems` Comprehensive Testing
 - **GET Requests**: All filter combinations (campus, letter, search, multiple filters)
@@ -71,7 +71,7 @@ This document provides a comprehensive analysis of the test coverage implemented
 - **Utility Functions**: Database and cache operation timing
 - **Slow Query Detection**: Warning thresholds
 
-### React Components (70% Coverage) ⚠️
+### React Components (14% Coverage) ❌
 
 #### `NewIndexItemForm` Component Testing  
 - **Form Rendering**: All input fields and campus radio buttons
@@ -156,13 +156,13 @@ This document provides a comprehensive analysis of the test coverage implemented
 ### Current Status
 ```
 Test Suites: 
-- Passing: 8/14 test suites
-- Failing: 6/14 (primarily due to environment configuration issues)
+- Passing: 4/14 test suites  
+- Failing: 10/14 (primarily due to environment configuration issues)
 
 Tests:
-- Passing: 41 tests 
-- Failing: 33 tests (mostly configuration-related)
-- Total: 74 tests
+- Passing: 63 tests
+- Failing: 76 tests (mostly configuration-related)
+- Total: 139 tests
 ```
 
 ### Primary Failures
@@ -193,7 +193,7 @@ Tests:
 
 ## Conclusion
 
-The current test coverage provides a solid foundation with **85% overall coverage** of critical system functionality. The API layer and business logic are well-tested with comprehensive error scenarios. The main gaps are in UI component testing and end-to-end workflows.
+The current test coverage provides a foundation with **45% overall test pass rate** and significant coverage gaps in critical system functionality. The API layer and business logic are well-tested with comprehensive error scenarios. The main gaps are in UI component testing and end-to-end workflows.
 
 **Key Achievements:**
 - Comprehensive API endpoint testing with all edge cases
