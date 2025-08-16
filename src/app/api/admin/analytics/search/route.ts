@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { kv } from '@vercel/kv';
+import { getSearchAnalytics } from '@/lib/search-analytics';
 
 // Helper to calculate date ranges
 function getDateRange(range: string) {
@@ -24,78 +25,112 @@ function getDateRange(range: string) {
   return { start, end: now };
 }
 
-// Get search overview metrics
-async function getSearchOverview(range: string) {
-  const totalSearches = Number(await kv.get(`search:total:${range}`)) || 15000;
-  const uniqueSearchers = Number(await kv.get(`search:users:${range}`)) || 1200;
-  const noResults = Number(await kv.get(`search:no_results:${range}`)) || 2250;
-  
-  return {
-    totalSearches,
-    uniqueSearchers,
-    avgSearchesPerUser: uniqueSearchers > 0 ? totalSearches / uniqueSearchers : 0,
-    noResultsRate: totalSearches > 0 ? noResults / totalSearches : 0
-  };
+// Get search overview metrics - now uses real data
+async function getSearchOverview(startDate: Date, endDate: Date) {
+  try {
+    const analytics = await getSearchAnalytics(startDate, endDate);
+    return analytics.overview;
+  } catch (error) {
+    console.error('Error getting search overview:', error);
+    // Return fallback data if real data fails
+    return {
+      totalSearches: 0,
+      uniqueSearchers: 0,
+      avgSearchesPerUser: 0,
+      noResultsRate: 0
+    };
+  }
 }
 
-// Get top search terms with click-through rates
-async function getTopSearchTerms(range: string) {
-  // In a real implementation, this would come from search analytics data
-  // For now, return mock data that represents typical college search patterns
-  const mockTerms = [
-    { term: 'financial aid', count: 2500, clickThrough: 0.85 },
-    { term: 'registration', count: 2000, clickThrough: 0.90 },
-    { term: 'counseling', count: 1800, clickThrough: 0.75 },
-    { term: 'library', count: 1500, clickThrough: 0.95 },
-    { term: 'parking', count: 1200, clickThrough: 0.88 },
-    { term: 'transcript', count: 1000, clickThrough: 0.92 },
-    { term: 'bookstore', count: 950, clickThrough: 0.87 },
-    { term: 'calendar', count: 800, clickThrough: 0.78 },
-    { term: 'tutoring', count: 750, clickThrough: 0.82 },
-    { term: 'career center', count: 600, clickThrough: 0.90 }
-  ];
-
-  // Adjust counts based on range
-  const multiplier = range === 'week' ? 0.25 : range === 'year' ? 4 : 1;
-  return mockTerms.map(term => ({
-    ...term,
-    count: Math.floor(term.count * multiplier)
-  }));
+// Get top search terms with click-through rates - now uses real data
+async function getTopSearchTerms(startDate: Date, endDate: Date) {
+  try {
+    const analytics = await getSearchAnalytics(startDate, endDate);
+    
+    // If we have real data, return it
+    if (analytics.topSearchTerms && analytics.topSearchTerms.length > 0) {
+      return analytics.topSearchTerms.slice(0, 10);
+    }
+    
+    // Return empty array if no data yet
+    return [];
+  } catch (error) {
+    console.error('Error getting top search terms:', error);
+    return [];
+  }
 }
 
-// Get searches that returned no results
-async function getNoResultsSearches(range: string) {
-  // Mock data for searches that commonly fail
-  const mockNoResults = [
-    { term: 'meal plan', count: 150 },
-    { term: 'dormitory', count: 120 },
-    { term: 'sports teams', count: 100 },
-    { term: 'student housing', count: 95 },
-    { term: 'gym membership', count: 80 },
-    { term: 'cafeteria menu', count: 75 },
-    { term: 'clubs', count: 65 },
-    { term: 'alumni services', count: 60 }
-  ];
-
-  // Adjust counts based on range
-  const multiplier = range === 'week' ? 0.25 : range === 'year' ? 4 : 1;
-  return mockNoResults.map(term => ({
-    ...term,
-    count: Math.floor(term.count * multiplier)
-  })).filter(term => term.count > 0);
+// Get searches that returned no results - now uses real data
+async function getNoResultsSearches(startDate: Date, endDate: Date) {
+  try {
+    const analytics = await getSearchAnalytics(startDate, endDate);
+    
+    // Return real no-results data
+    if (analytics.noResultsSearches && analytics.noResultsSearches.length > 0) {
+      return analytics.noResultsSearches;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error getting no-results searches:', error);
+    return [];
+  }
 }
 
 // Get search patterns and behavior data
-async function getSearchPatterns(range: string) {
-  return {
-    avgSearchLength: 2.3,
-    refinementRate: 0.35,
-    exitRate: 0.20,
-    filterUsage: {
-      campus: 0.45,
-      letter: 0.20
+async function getSearchPatterns(startDate: Date, endDate: Date) {
+  try {
+    // Calculate real filter usage from Redis
+    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    let campusFilterCount: number = 0;
+    let letterFilterCount: number = 0;
+    let totalSearches: number = 0;
+    
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      const dateKey = date.toISOString().split('T')[0];
+      
+      // Get filter usage counts
+      const campusFilters = await kv.hgetall(`search:filter:campus:${dateKey}`);
+      const letterFilters = await kv.hgetall(`search:filter:letter:${dateKey}`);
+      const dayTotal = await kv.hget(`search:total:${dateKey}`, 'count');
+      
+      if (campusFilters) {
+        const additionalCampusCount = Object.values(campusFilters).reduce((sum: number, val: unknown) => {
+          return sum + Number(val || 0);
+        }, 0) as number;
+        campusFilterCount += additionalCampusCount;
+      }
+      if (letterFilters) {
+        const additionalLetterCount = Object.values(letterFilters).reduce((sum: number, val: unknown) => {
+          return sum + Number(val || 0);
+        }, 0) as number;
+        letterFilterCount += additionalLetterCount;
+      }
+      if (dayTotal) {
+        totalSearches += Number(dayTotal);
+      }
     }
-  };
+    
+    return {
+      avgSearchLength: 2.3, // This would need actual term analysis
+      refinementRate: 0.35, // This would need session tracking
+      exitRate: 0.20, // This would need session tracking
+      filterUsage: {
+        campus: totalSearches > 0 ? campusFilterCount / totalSearches : 0,
+        letter: totalSearches > 0 ? letterFilterCount / totalSearches : 0
+      }
+    };
+  } catch (error) {
+    console.error('Error getting search patterns:', error);
+    return {
+      avgSearchLength: 0,
+      refinementRate: 0,
+      exitRate: 0,
+      filterUsage: { campus: 0, letter: 0 }
+    };
+  }
 }
 
 // Generate recommendations based on search data
@@ -144,13 +179,16 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
     const range = searchParams.get('range') || 'month';
+    
+    // Calculate date range
+    const { start, end } = getDateRange(range);
 
-    // Fetch all data
+    // Fetch all data with real date ranges
     const [overview, topSearchTerms, noResultsSearches, searchPatterns] = await Promise.all([
-      getSearchOverview(range),
-      getTopSearchTerms(range),
-      getNoResultsSearches(range),
-      getSearchPatterns(range)
+      getSearchOverview(start, end),
+      getTopSearchTerms(start, end),
+      getNoResultsSearches(start, end),
+      getSearchPatterns(start, end)
     ]);
 
     // Generate recommendations

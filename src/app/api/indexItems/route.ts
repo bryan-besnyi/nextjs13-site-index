@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { prisma } from '@/lib/prisma-singleton';
 import { PerformanceMonitor, timeDbQuery, timeCacheOperation } from '@/lib/performance-monitor';
+import { PerformanceCollector } from '@/lib/performance-collector';
+import * as CachedIndexItems from '@/lib/indexItems-cached';
 
 // Optimized caching strategy
 const CACHE_TTL = 4 * 60 * 60; // 4 hours (more aggressive caching)
@@ -293,4 +295,134 @@ export async function DELETE(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// UPDATE/PATCH endpoint for modifying existing items
+export async function PATCH(req: NextRequest) {
+  try {
+    // User-Agent validation
+    const userAgent = req.headers.get('user-agent') || '';
+    if (!isValidUserAgent(userAgent)) {
+      return NextResponse.json({ error: 'Invalid User-Agent' }, { status: 403 });
+    }
+
+    // Rate limiting
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded' },
+        { status: 429 }
+      );
+    }
+
+    // Get ID from query params
+    const id = req.nextUrl.searchParams.get('id');
+    if (!id || isNaN(Number(id))) {
+      return NextResponse.json(
+        { error: 'Valid ID required' },
+        { status: 400 }
+      );
+    }
+
+    // Parse request body
+    const body = await req.json();
+    const { title, letter, url, campus } = body;
+
+    // Validate at least one field is being updated
+    if (!title && !letter && !url && !campus) {
+      return NextResponse.json(
+        { error: 'At least one field must be provided for update' },
+        { status: 400 }
+      );
+    }
+
+    // Build update data object
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (letter !== undefined) updateData.letter = letter;
+    if (url !== undefined) updateData.url = url;
+    if (campus !== undefined) updateData.campus = campus;
+
+    // Validate URL if provided
+    if (url) {
+      try {
+        new URL(url);
+      } catch {
+        return NextResponse.json(
+          { error: 'Invalid URL format' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate letter if provided
+    if (letter && letter.length !== 1) {
+      return NextResponse.json(
+        { error: 'Letter must be a single character' },
+        { status: 400 }
+      );
+    }
+
+    // Get the current item for cache invalidation
+    const currentItem = await prisma.indexitem.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!currentItem) {
+      return NextResponse.json(
+        { error: 'Item not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update the item
+    const updatedItem = await prisma.indexitem.update({
+      where: { id: Number(id) },
+      data: updateData,
+      select: {
+        id: true,
+        title: true,
+        letter: true,
+        url: true,
+        campus: true
+      }
+    });
+
+    // Smart cache invalidation - clear both old and new cache patterns
+    const patterns = new Set([
+      // Old patterns
+      `${CACHE_PREFIX}${currentItem.campus}:${currentItem.letter}:`,
+      `${CACHE_PREFIX}${currentItem.campus}::`,
+      `${CACHE_PREFIX}:${currentItem.letter}:`,
+      // New patterns (if campus or letter changed)
+      `${CACHE_PREFIX}${updatedItem.campus}:${updatedItem.letter}:`,
+      `${CACHE_PREFIX}${updatedItem.campus}::`,
+      `${CACHE_PREFIX}:${updatedItem.letter}:`,
+      // Always clear the "all" cache
+      `${CACHE_PREFIX}::`
+    ]);
+    
+    // Invalidate in parallel (don't wait)
+    Array.from(patterns).forEach(pattern => {
+      kv.del(pattern).catch(err => console.warn('Cache invalidation failed:', err));
+    });
+
+    return NextResponse.json(updatedItem, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('PATCH Error:', error);
+    return NextResponse.json(
+      { error: 'Error updating item' },
+      { status: 500 }
+    );
+  }
+}
+
+// Support PUT as an alias for PATCH
+export async function PUT(req: NextRequest) {
+  return PATCH(req);
 }

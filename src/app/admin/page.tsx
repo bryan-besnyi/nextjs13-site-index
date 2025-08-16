@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma-singleton';
 import { kv } from '@vercel/kv';
 import MetricsCard from '@/components/admin/MetricsCard';
+import { getCacheStats } from '@/lib/indexItems-cached';
 import { 
   Database, 
   TrendingUp, 
@@ -23,11 +24,14 @@ async function getDashboardMetrics() {
     // Get total items count
     const totalItems = await prisma.indexitem.count();
     
-    // Get items by campus
-    const itemsByCampus = await prisma.indexitem.groupBy({
-      by: ['campus'],
-      _count: true,
-    });
+    // Get items by campus - using aggregation instead of groupBy to avoid type issues
+    const campuses = ['Cañada College', 'College of San Mateo', 'Skyline College', 'District Office'];
+    const itemsByCampus = await Promise.all(
+      campuses.map(async (campus) => ({
+        campus,
+        _count: await prisma.indexitem.count({ where: { campus } })
+      }))
+    );
     
     // Get recent items (last 7 days)
     const sevenDaysAgo = new Date();
@@ -41,11 +45,12 @@ async function getDashboardMetrics() {
       }
     });
     
-    // Get cache stats (mock for now, would connect to Redis in production)
-    const cacheStats = {
-      hitRate: 78.5,
-      totalRequests: 15420,
-      cachedRequests: 12105
+    // Get real cache stats from Redis
+    const cacheStatsResult = await getCacheStats();
+    const cacheStats = cacheStatsResult.stats || {
+      hitRate: 0,
+      totalRequests: 0,
+      cachedRequests: 0
     };
     
     // Get API performance metrics

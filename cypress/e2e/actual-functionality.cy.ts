@@ -129,23 +129,33 @@ describe('SMCCCD Site Index - Actual Functionality Tests', () => {
   });
 
   it('Stress test - multiple rapid requests', () => {
-    const requests = Array.from({ length: 10 }, (_, i) =>
+    // Collect results
+    const results: { status: number; duration: number }[] = [];
+    
+    // Execute 10 requests sequentially (Cypress way)
+    Cypress._.times(10, (i) => {
       cy.request({
         url: `${baseUrl}/api/health`,
         timeout: 5000,
         failOnStatusCode: false
-      })
-    );
-
-    // Execute all requests
-    Promise.all(requests).then((responses) => {
-      const successCount = responses.filter(r => r.status === 200).length;
-      const avgTime = responses.reduce((sum, r) => sum + (r.duration || 0), 0) / responses.length;
+      }).then((response) => {
+        results.push({
+          status: response.status,
+          duration: response.duration || 0
+        });
+      });
+    });
+    
+    // Analyze results after all requests complete
+    cy.then(() => {
+      const successCount = results.filter(r => r.status === 200).length;
+      const avgTime = results.reduce((sum, r) => sum + r.duration, 0) / results.length;
       
       cy.log(`Successful requests: ${successCount}/10`);
       cy.log(`Average response time: ${avgTime}ms`);
       
       expect(successCount).to.be.at.least(8); // Allow for some failures
+      expect(avgTime).to.be.lessThan(1000); // Should average under 1 second
     });
   });
 

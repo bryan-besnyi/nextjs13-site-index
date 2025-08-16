@@ -6,7 +6,7 @@ const authOptions: AuthOptions = {
     OneLoginProvider({
       clientId: process.env.ONELOGIN_CLIENT_ID,
       clientSecret: process.env.ONELOGIN_CLIENT_SECRET,
-      issuer: 'https://smccd.onelogin.com',
+      issuer: process.env.ONELOGIN_ISSUER || 'https://smccd.onelogin.com',
       profile(profile) {
         // console.log('Raw profile data from OneLogin:', profile)
         return {
@@ -18,6 +18,11 @@ const authOptions: AuthOptions = {
       }
     })
   ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 60, // 30 minutes
+    updateAge: 5 * 60, // Update session every 5 minutes
+  },
   callbacks: {
     async jwt({ token, account, user, profile }) {
       // await console.log('JWT callback - entire profile:', profile)
@@ -27,19 +32,29 @@ const authOptions: AuthOptions = {
         token.name = user.name;
         token.email = user.email;
         token.sub = user.id;
+        token.iat = Date.now() / 1000; // Issued at time
+        token.exp = Date.now() / 1000 + (30 * 60); // Expires in 30 minutes
         // console.log('JWT callback - token.sub:', token.sub)
       }
       return token;
     },
     async session({ session, token }) {
+      // Check if token has expired
+      if (token.exp && Date.now() / 1000 > Number(token.exp)) {
+        return null; // Force re-authentication
+      }
+      
       session.user.name = token.name;
       session.user.email = token.email;
-      console.log('Session callback - session:', session);
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Session callback - session:', session);
+      }
 
       return session;
     }
   },
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET
 };
 
