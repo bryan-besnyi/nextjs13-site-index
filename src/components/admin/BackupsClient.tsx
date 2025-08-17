@@ -35,8 +35,19 @@ export default function BackupsClient() {
   const fetchBackups = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/system/backups', {
-        credentials: 'include'
+      
+      // Add cache busting for preview environments
+      const isPreview = typeof window !== 'undefined' && 
+        (window.location.hostname.includes('vercel.app') || 
+         process.env.NODE_ENV === 'development');
+      
+      const url = isPreview 
+        ? `/api/admin/system/backups?_t=${Date.now()}`
+        : '/api/admin/system/backups';
+      
+      const response = await fetch(url, {
+        credentials: 'include',
+        cache: 'no-cache' // Prevent caching issues
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -44,6 +55,36 @@ export default function BackupsClient() {
       }
       
       const data = await response.json();
+      
+      // Debug logging to help identify date issues
+      console.log('Backup data received:', data.backups?.slice(0, 2)); // Log first 2 items
+      console.log('Stats received:', data.stats);
+      
+      data.backups?.forEach((backup: BackupFile, index: number) => {
+        if (index < 2) { // Only log first 2 items
+          console.log(`Backup ${index}: name=${backup.name}, date=${backup.date}, parsed=${new Date(backup.date)}, year=${new Date(backup.date).getFullYear()}`);
+        }
+        if (index < 3) { // Only log first 3 for debugging
+          const parsedDate = new Date(backup.date);
+          console.log(`Backup ${index}:`, {
+            name: backup.name,
+            rawDate: backup.date,
+            parsedDate: parsedDate,
+            year: parsedDate.getFullYear(),
+            isValidDate: !isNaN(parsedDate.getTime()),
+            formattedDate: parsedDate.toLocaleString('en-US', {
+              year: 'numeric',
+              month: '2-digit', 
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              timeZoneName: 'short'
+            })
+          });
+        }
+      });
+      
       setBackups(data.backups);
       setStats(data.stats);
       setError(null);
@@ -137,19 +178,50 @@ export default function BackupsClient() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    try {
+      const date = new Date(dateString);
+      // Ensure we have a valid date
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      
+      // Use explicit locale and options for consistent formatting
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      });
+    } catch (error) {
+      console.error('Date formatting error:', error, 'Input:', dateString);
+      return 'Invalid Date';
+    }
   };
 
   const getBackupAge = (dateString: string) => {
-    const now = new Date();
-    const backupDate = new Date(dateString);
-    const diffMs = now.getTime() - backupDate.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    return 'Less than an hour ago';
+    try {
+      const now = new Date();
+      const backupDate = new Date(dateString);
+      
+      // Ensure we have valid dates
+      if (isNaN(backupDate.getTime())) {
+        return 'Unknown age';
+      }
+      
+      const diffMs = now.getTime() - backupDate.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHours / 24);
+      
+      if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      return 'Less than an hour ago';
+    } catch (error) {
+      console.error('Date age calculation error:', error, 'Input:', dateString);
+      return 'Unknown age';
+    }
   };
 
   if (loading) {
@@ -288,7 +360,14 @@ export default function BackupsClient() {
                 </thead>
                 <tbody>
                   {backups
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .sort((a, b) => {
+                      const dateA = new Date(a.date);
+                      const dateB = new Date(b.date);
+                      // Handle invalid dates by putting them at the end
+                      if (isNaN(dateA.getTime())) return 1;
+                      if (isNaN(dateB.getTime())) return -1;
+                      return dateB.getTime() - dateA.getTime();
+                    })
                     .map((backup) => (
                     <tr key={backup.name} className="border-b hover:bg-gray-50">
                       <td className="p-3 font-mono text-sm">{backup.name}</td>
