@@ -288,7 +288,7 @@ export class QueryOptimizer {
     // Build where conditions
     const whereConditions: any = {};
     if (campus) whereConditions.campus = campus;
-    if (letter) whereConditions.letter = { contains: letter, mode: 'insensitive' };
+    if (letter) whereConditions.letter = letter; // Exact match for letter
     if (search) {
       whereConditions.OR = [
         { title: { contains: search, mode: 'insensitive' } },

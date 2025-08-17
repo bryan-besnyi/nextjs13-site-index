@@ -128,10 +128,6 @@ export default function EditIndexItemForm({ item }: EditIndexItemFormProps) {
         data.campus
       );
 
-      if (result.error) {
-        throw new Error(typeof result.error === 'string' ? result.error : 'Update failed');
-      }
-
       setSubmitSuccess(true);
       toast.success('Index item updated successfully!');
 

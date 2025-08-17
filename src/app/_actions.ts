@@ -19,12 +19,13 @@ export async function createIndexItemAction(
     campus
   );
   if (error) {
-    console.error(error);
-    return { error };
-  } else {
-    revalidatePath('/indexItems');
-    return { newIndexItem };
+    console.error('Server action error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to create index item');
   }
+  
+  revalidatePath('/indexItems');
+  revalidatePath('/admin'); // Also revalidate admin page
+  return { newIndexItem };
 }
 
 export async function updateIndexItemAction(
@@ -42,12 +43,13 @@ export async function updateIndexItemAction(
     campus
   );
   if (error) {
-    console.error(error);
-    return { error };
-  } else {
-    revalidatePath('/indexItems');
-    return { updatedItem };
+    console.error('Server action error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to update index item');
   }
+  
+  revalidatePath('/indexItems');
+  revalidatePath('/admin'); // Also revalidate admin page
+  return { updatedItem };
 }
 
 export async function deleteIndexItemAction(id: string) {

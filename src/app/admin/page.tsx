@@ -64,14 +64,38 @@ async function getDashboardMetrics() {
       performanceMetrics
     };
   } catch (error) {
-    console.error('Failed to fetch dashboard metrics:', error);
-    return null;
+    console.error('Failed to fetch dashboard metrics:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      code: error && typeof error === 'object' && 'code' in error ? error.code : undefined,
+      name: error instanceof Error ? error.name : 'Unknown'
+    });
+    
+    // Return partial/fallback data instead of null to provide better UX
+    return {
+      totalItems: 0,
+      itemsByCampus: [
+        { campus: 'Cañada College', _count: 0 },
+        { campus: 'College of San Mateo', _count: 0 },
+        { campus: 'Skyline College', _count: 0 },
+        { campus: 'District Office', _count: 0 }
+      ],
+      recentItems: 0,
+      cacheStats: {
+        hitRate: 0,
+        totalRequests: 0,
+        cachedRequests: 0
+      },
+      performanceMetrics: null,
+      error: error instanceof Error ? error.message : 'Unknown error' // Include error info for debugging
+    };
   }
 }
 
 export default async function AdminDashboardPage() {
   const metrics = await getDashboardMetrics();
   
+  // This will never happen now since we return fallback data, but keeping for safety
   if (!metrics) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -113,6 +137,23 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-10 lg:space-y-12">
+      {/* Error banner for partial data */}
+      {metrics.error && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-orange-800">
+              <AlertCircle className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Dashboard partially loaded</p>
+                <p className="text-sm text-orange-700">
+                  Some metrics may be unavailable due to: {metrics.error}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Page Header with gradient background */}
       <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white shadow-xl">
         <div className="relative z-10">

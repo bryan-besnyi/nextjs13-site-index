@@ -39,6 +39,11 @@ export default function ImportExportClient() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [previewData, setPreviewData] = useState<any[] | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [exportOptions, setExportOptions] = useState<ExportOptions>({
+    format: 'csv',
+    campus: '',
+    includeInactive: false
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -481,47 +486,13 @@ export default function ImportExportClient() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-sm font-medium mb-2 block">Export Format</Label>
-            <div className="grid grid-cols-3 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleExport({ format: 'csv' })}
-                disabled={isExporting}
-                className="flex-col h-auto py-3"
-              >
-                <FileSpreadsheet className="h-6 w-6 mb-1" />
-                <span className="text-xs">CSV</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport({ format: 'json' })}
-                disabled={isExporting}
-                className="flex-col h-auto py-3"
-              >
-                <Code className="h-6 w-6 mb-1" />
-                <span className="text-xs">JSON</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport({ format: 'xlsx' })}
-                disabled={isExporting}
-                className="flex-col h-auto py-3"
-              >
-                <FileText className="h-6 w-6 mb-1" />
-                <span className="text-xs">Excel</span>
-              </Button>
-            </div>
-          </div>
-
-          <div>
             <Label htmlFor="campus-filter">Filter by Campus (optional)</Label>
             <select 
               id="campus-filter"
+              value={exportOptions.campus}
               className="mt-1 w-full px-3 py-2 border border-input rounded-md text-sm"
               onChange={(e) => {
-                if (e.target.value) {
-                  handleExport({ format: 'csv', campus: e.target.value });
-                }
+                setExportOptions(prev => ({ ...prev, campus: e.target.value }));
               }}
             >
               <option value="">All Campuses</option>
@@ -532,12 +503,51 @@ export default function ImportExportClient() {
             </select>
           </div>
 
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Export Format</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleExport({ ...exportOptions, format: 'csv' })}
+                disabled={isExporting}
+                className="flex-col h-auto py-3"
+              >
+                <FileSpreadsheet className="h-6 w-6 mb-1" />
+                <span className="text-xs">CSV</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleExport({ ...exportOptions, format: 'json' })}
+                disabled={isExporting}
+                className="flex-col h-auto py-3"
+              >
+                <Code className="h-6 w-6 mb-1" />
+                <span className="text-xs">JSON</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleExport({ ...exportOptions, format: 'xlsx' })}
+                disabled={isExporting}
+                className="flex-col h-auto py-3"
+              >
+                <FileText className="h-6 w-6 mb-1" />
+                <span className="text-xs">Excel</span>
+              </Button>
+            </div>
+          </div>
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <h4 className="text-sm font-medium mb-2">Export Information</h4>
             <ul className="text-xs text-muted-foreground space-y-1">
-              <li>• CSV: Comma-separated values, opens in Excel</li>
-              <li>• JSON: Machine-readable format for APIs</li>
-              <li>• Excel: Native Excel format with formatting</li>
+              <li>• <strong>CSV:</strong> Comma-separated values, opens in Excel</li>
+              <li>• <strong>JSON:</strong> Machine-readable format for APIs</li>
+              <li>• <strong>Excel:</strong> Native Excel format with formatting</li>
+              {exportOptions.campus && (
+                <li className="text-blue-700 font-medium">• Filtered by: {exportOptions.campus}</li>
+              )}
+              {!exportOptions.campus && (
+                <li>• All campuses will be included</li>
+              )}
             </ul>
           </div>
 

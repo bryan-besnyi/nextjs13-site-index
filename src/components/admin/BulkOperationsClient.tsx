@@ -57,18 +57,36 @@ export default function BulkOperationsClient() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
-      if (selectedCampus) params.append('campus', selectedCampus);
-      if (selectedLetter) params.append('letter', selectedLetter);
+      if (searchQuery?.trim()) params.append('search', searchQuery.trim());
+      if (selectedCampus?.trim()) params.append('campus', selectedCampus.trim());
+      if (selectedLetter?.trim()) params.append('letter', selectedLetter.trim());
 
+      console.log('Fetching items with params:', params.toString());
       const response = await fetch(`/api/indexItems?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch items');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Fetch error response:', errorText);
+        throw new Error(`Failed to fetch items: ${response.status}`);
+      }
       
       const data = await response.json();
-      setItems(data.results || []);
+      console.log('Fetched data:', data);
+      
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        setItems(data);
+      } else if (data.results) {
+        setItems(data.results);
+      } else if (data.indexItems) {
+        setItems(data.indexItems);
+      } else {
+        console.warn('Unexpected data format:', data);
+        setItems([]);
+      }
     } catch (error) {
       toast.error('Failed to load items');
       console.error('Fetch error:', error);
+      setItems([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
