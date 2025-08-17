@@ -18,7 +18,8 @@ import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
-import { IndexItemFormData, CreateIndexItemSchema, CampusInfo, VALID_CAMPUSES } from '@/types';
+import { IndexItemFormData, CampusInfo, VALID_CAMPUSES } from '@/types';
+import { CreateIndexItemSchema } from '@/types/forms';
 
 const campusInfo: CampusInfo[] = [
   { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
