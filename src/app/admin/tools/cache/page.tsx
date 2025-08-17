@@ -15,8 +15,10 @@ import {
 import { toast } from 'react-hot-toast';
 import { 
   Database, RefreshCw, Trash2, Search, AlertCircle,
-  HardDrive, Zap, TrendingUp, Package
+  HardDrive, Zap, TrendingUp, Package, Filter
 } from 'lucide-react';
+import { useCSRF } from '@/hooks/useCSRF';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CacheStats {
   totalKeys: number;
@@ -34,12 +36,14 @@ interface CacheEntry {
 }
 
 export default function CachePage() {
+  const { fetchWithCSRF, isLoading: csrfLoading, error: csrfError } = useCSRF();
   const [stats, setStats] = useState<CacheStats | null>(null);
   const [entries, setEntries] = useState<CacheEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<CacheEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [campusFilter, setCampusFilter] = useState<string>('all');
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [showInvalidateModal, setShowInvalidateModal] = useState(false);
   const [showPatternModal, setShowPatternModal] = useState(false);
@@ -71,30 +75,54 @@ export default function CachePage() {
   }, []);
 
   useEffect(() => {
-    const filtered = entries.filter(entry =>
+    let filtered = entries.filter(entry =>
       entry.key.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Apply campus filter
+    if (campusFilter !== 'all') {
+      const campusMapping = {
+        'csm': 'College of San Mateo',
+        'skyline': 'Skyline College',
+        'canada': 'Cañada College',
+        'district': 'District Office'
+      };
+      
+      const campusName = campusMapping[campusFilter as keyof typeof campusMapping];
+      if (campusName) {
+        filtered = filtered.filter(entry => 
+          entry.key.includes(campusName) || 
+          entry.key.includes(campusFilter.toUpperCase()) ||
+          entry.key.includes(`campus:${campusName}`) ||
+          entry.key.includes(`${campusFilter}:`)
+        );
+      }
+    }
+
     setFilteredEntries(filtered);
-  }, [searchQuery, entries]);
+  }, [searchQuery, campusFilter, entries]);
 
   const handleInvalidateKey = async (key: string) => {
     const loadingToast = toast.loading('Invalidating cache key...');
     
     try {
-      const response = await fetch('/api/admin/cache/invalidate', {
+      const response = await fetchWithCSRF('/api/admin/cache/invalidate', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key })
       });
 
-      if (!response.ok) throw new Error('Failed to invalidate cache');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to invalidate cache');
+      }
       
       const result = await response.json();
       toast.success(result.message || 'Cache key invalidated');
       fetchCacheData(); // Refresh data
     } catch (err) {
-      toast.error('Failed to invalidate cache key');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to invalidate cache key';
+      toast.error(errorMessage);
       console.error(err);
     } finally {
       toast.dismiss(loadingToast);
@@ -107,21 +135,24 @@ export default function CachePage() {
     const loadingToast = toast.loading('Invalidating cache entries...');
     
     try {
-      const response = await fetch('/api/admin/cache/invalidate', {
+      const response = await fetchWithCSRF('/api/admin/cache/invalidate', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keys: Array.from(selectedKeys) })
       });
 
-      if (!response.ok) throw new Error('Failed to invalidate cache');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to invalidate cache');
+      }
       
       const result = await response.json();
       toast.success(`${result.invalidated || selectedKeys.size} cache entries invalidated`);
       setSelectedKeys(new Set());
       fetchCacheData();
     } catch (err) {
-      toast.error('Failed to invalidate cache entries');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to invalidate cache entries';
+      toast.error(errorMessage);
       console.error(err);
     } finally {
       toast.dismiss(loadingToast);
@@ -133,20 +164,23 @@ export default function CachePage() {
     const loadingToast = toast.loading('Invalidating cache by pattern...');
     
     try {
-      const response = await fetch('/api/admin/cache/invalidate', {
+      const response = await fetchWithCSRF('/api/admin/cache/invalidate', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pattern: patternInput })
       });
 
-      if (!response.ok) throw new Error('Failed to invalidate cache');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to invalidate cache');
+      }
       
       const result = await response.json();
       toast.success(`${result.invalidated} cache entries invalidated`);
       fetchCacheData();
     } catch (err) {
-      toast.error('Failed to invalidate cache by pattern');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to invalidate cache by pattern';
+      toast.error(errorMessage);
       console.error(err);
     } finally {
       toast.dismiss(loadingToast);
@@ -163,23 +197,25 @@ export default function CachePage() {
     }
   };
 
-  if (loading) {
+  if (loading || csrfLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading cache data...</p>
+          <p className="text-gray-600">
+            {csrfLoading ? 'Loading security token...' : 'Loading cache data...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || csrfError) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error || csrfError}</p>
           <Button onClick={fetchCacheData} className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry
@@ -271,6 +307,45 @@ export default function CachePage() {
         </Card>
       </div>
 
+      {/* Quick Actions for Non-Technical Users */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Quick Actions by Campus
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-4 gap-4 mb-4">
+            {[
+              { key: 'csm', name: 'College of San Mateo', color: 'bg-blue-500' },
+              { key: 'skyline', name: 'Skyline College', color: 'bg-green-500' },
+              { key: 'canada', name: 'Cañada College', color: 'bg-purple-500' },
+              { key: 'district', name: 'District Office', color: 'bg-orange-500' }
+            ].map((campus) => (
+              <Button
+                key={campus.key}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-start"
+                onClick={() => {
+                  setPatternInput(`*${campus.name}*`);
+                  setShowPatternModal(true);
+                }}
+              >
+                <div className={`w-3 h-3 rounded-full ${campus.color} mb-2`}></div>
+                <div className="text-left">
+                  <div className="font-semibold text-sm">{campus.name}</div>
+                  <div className="text-xs text-gray-500">Clear {campus.name.split(' ')[0]} cache</div>
+                </div>
+              </Button>
+            ))}
+          </div>
+          <div className="text-sm text-blue-800">
+            <p><strong>💡 Tip:</strong> Use these buttons to clear cache for a specific campus when you update content on that campus&apos;s website.</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Cache Entries Help */}
       <Card className="bg-gray-50 border-gray-200">
         <CardContent className="pt-6">
@@ -318,6 +393,18 @@ export default function CachePage() {
                   className="pl-10 w-64"
                 />
               </div>
+              <Select value={campusFilter} onValueChange={setCampusFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by campus" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Campuses</SelectItem>
+                  <SelectItem value="csm">College of San Mateo</SelectItem>
+                  <SelectItem value="skyline">Skyline College</SelectItem>
+                  <SelectItem value="canada">Cañada College</SelectItem>
+                  <SelectItem value="district">District Office</SelectItem>
+                </SelectContent>
+              </Select>
               {selectedKeys.size > 0 && (
                 <Button
                   variant="destructive"

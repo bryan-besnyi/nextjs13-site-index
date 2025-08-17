@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { CSRF_CLIENT_CONFIG } from '@/lib/csrf';
+import { CSRF_CLIENT_CONFIG } from '@/lib/csrf-client';
 
 interface CSRFHookReturn {
   csrfToken: string;
