@@ -42,6 +42,7 @@ const ALLOWED_ORIGINS = [
   'https://canadacollege.edu', 
   'https://skylinecollege.edu',
   'https://site-index.smccd.edu', // Current production site
+  'https://site-index-git-develop-smcccd.vercel.app', // Preview deployment
   ...(process.env.NODE_ENV === 'development' ? [
     'http://localhost:3000',
     'http://localhost:3001',

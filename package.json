@@ -27,7 +27,10 @@
     "check-links:letter": "node scripts/check-links.js --letter",
     "check-links:prod": "node scripts/check-links-prod.js",
     "check-links:prod-campus": "node scripts/check-links-prod.js --campus",
-    "check-links:prod-letter": "node scripts/check-links-prod.js --letter"
+    "check-links:prod-letter": "node scripts/check-links-prod.js --letter",
+    "generate-traffic": "node scripts/generate-test-traffic.js",
+    "generate-traffic:preview": "TEST_URL=https://site-index-git-develop-smcccd.vercel.app npm run generate-traffic",
+    "populate-metrics": "node scripts/populate-performance-metrics.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.4.2",

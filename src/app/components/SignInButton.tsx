@@ -4,14 +4,18 @@ import { signIn } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
-// Check if we're in preview mode
-const isPreviewMode = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+// Check if we're in preview mode - this needs to be inside the component to work properly
 
 const OneLoginSignInButton = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Check if we're in preview mode - client-side env vars need NEXT_PUBLIC_ prefix
+  const isPreviewMode = typeof window !== 'undefined' && 
+    (window.location.hostname.includes('vercel.app') || 
+     process.env.NODE_ENV === 'development');
 
   // Check for authentication errors
   useEffect(() => {
