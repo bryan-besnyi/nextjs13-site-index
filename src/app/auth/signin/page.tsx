@@ -5,6 +5,9 @@ import { Shield, Building2, Users } from 'lucide-react';
 import './signin.css';
 
 export default function SignInPage() {
+  // Check if we're in preview mode
+  const isPreviewMode = process.env.VERCEL_ENV === 'preview' || process.env.BYPASS_AUTH === 'true';
+  
   return (
     <>
     <div className="signin-page flex items-center justify-center min-h-screen px-4">
@@ -30,14 +33,25 @@ export default function SignInPage() {
           </p>
         </div>
         
+        {/* Preview Mode Notice */}
+        {isPreviewMode && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800 font-medium text-center">
+              🚧 Preview Mode - Authentication Bypassed for Testing
+            </p>
+          </div>
+        )}
+        
         {/* Main Sign In Card */}
         <Card className="shadow-xl border-0 bg-white/95 backdrop-blur" style={{ color: '#000000' }}>
           <CardHeader className="text-center pb-4">
             <h2 className="text-xl font-semibold mb-2" style={{ color: '#111827' }}>
-              College Web Developer Access
+              {isPreviewMode ? 'Preview Access' : 'College Web Developer Access'}
             </h2>
             <p className="text-sm" style={{ color: '#4B5563' }}>
-              Sign in with your MySMCCD credentials to manage the site index
+              {isPreviewMode 
+                ? 'Click below to access the preview environment' 
+                : 'Sign in with your MySMCCD credentials to manage the site index'}
             </p>
           </CardHeader>
           

@@ -1,8 +1,32 @@
 import { AuthOptions } from 'next-auth';
 import OneLoginProvider from 'next-auth/providers/onelogin';
+import CredentialsProvider from 'next-auth/providers/credentials';
+
+// Check if we should bypass auth (for preview builds)
+const bypassAuth = process.env.BYPASS_AUTH === 'true' || process.env.VERCEL_ENV === 'preview';
 
 const authOptions: AuthOptions = {
   providers: [
+    // Add a simple credentials provider for preview/dev environments
+    ...(bypassAuth ? [
+      CredentialsProvider({
+        name: 'Preview Mode',
+        credentials: {
+          email: { label: "Email", type: "email", placeholder: "test@example.com" }
+        },
+        async authorize(credentials) {
+          // In preview mode, accept any email
+          if (credentials?.email) {
+            return {
+              id: '1',
+              name: 'Test User',
+              email: credentials.email,
+            };
+          }
+          return null;
+        }
+      })
+    ] : []),
     OneLoginProvider({
       clientId: process.env.ONELOGIN_CLIENT_ID,
       clientSecret: process.env.ONELOGIN_CLIENT_SECRET,

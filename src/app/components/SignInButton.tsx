@@ -4,6 +4,9 @@ import { signIn } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+// Check if we're in preview mode
+const isPreviewMode = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+
 const OneLoginSignInButton = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -38,11 +41,16 @@ const OneLoginSignInButton = () => {
     setError(null);
 
     try {
-      const result = await signIn('onelogin', {
+      // Use credentials provider in preview mode
+      const provider = isPreviewMode ? 'credentials' : 'onelogin';
+      const credentials = isPreviewMode ? { email: 'preview@test.com' } : undefined;
+      
+      const result = await signIn(provider, {
         callbackUrl: process.env.NODE_ENV === 'production'
           ? 'https://site-index.smccd.edu/admin'
           : 'http://localhost:3000/admin',
-        redirect: false // Handle redirect manually to catch errors
+        redirect: false, // Handle redirect manually to catch errors
+        ...credentials
       });
 
       if (result?.error) {
@@ -103,7 +111,7 @@ const OneLoginSignInButton = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
             </svg>
-            <span>Continue with MySMCCD</span>
+            <span>{isPreviewMode ? 'Continue to Preview (No Auth)' : 'Continue with MySMCCD'}</span>
           </>
         )}
       </button>
