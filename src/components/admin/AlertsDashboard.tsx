@@ -45,6 +45,12 @@ export default function AlertsDashboard() {
   const fetchAlerts = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Check if we're in preview mode
+      const isPreview = typeof window !== 'undefined' && 
+        (window.location.hostname.includes('vercel.app') || 
+         process.env.NODE_ENV === 'development');
+
       const [alertsResponse, statsResponse] = await Promise.all([
         fetch('/api/admin/alerts?action=recent&limit=50', {
           credentials: 'include'
@@ -57,11 +63,82 @@ export default function AlertsDashboard() {
       if (alertsResponse.ok) {
         const alertsData = await alertsResponse.json();
         setAlerts(alertsData.alerts || []);
+      } else if (isPreview && (alertsResponse.status === 401 || alertsResponse.status === 500)) {
+        // In preview mode, show mock data when API fails
+        console.warn('Using mock alerts data for preview environment');
+        setAlerts([
+          {
+            id: 'mock-1',
+            type: 'response_time',
+            severity: 'critical',
+            message: 'High response time detected on /api/indexItems',
+            endpoint: '/api/indexItems',
+            timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 min ago
+            acknowledged: false,
+            resolvedAt: null,
+            details: { responseTime: 2500, threshold: 1000 }
+          },
+          {
+            id: 'mock-2', 
+            type: 'error_rate',
+            severity: 'warning',
+            message: 'Elevated error rate on admin endpoints',
+            endpoint: '/api/admin/*',
+            timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 min ago
+            acknowledged: true,
+            resolvedAt: null,
+            details: { errorRate: 5.2, threshold: 5.0 }
+          },
+          {
+            id: 'mock-3',
+            type: 'cache_miss',
+            severity: 'info', 
+            message: 'Cache miss rate above normal',
+            endpoint: '/api/indexItems',
+            timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
+            acknowledged: false,
+            resolvedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString() // resolved 10 min ago
+          },
+          {
+            id: 'mock-4',
+            type: 'resource_usage',
+            severity: 'critical',
+            message: 'Memory usage critical threshold exceeded',
+            endpoint: null,
+            timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 min ago  
+            acknowledged: true,
+            resolvedAt: null,
+            details: { memoryUsage: 95.8, threshold: 90.0 }
+          }
+        ]);
+        toast.success('Preview mode: Showing sample alerts data');
+      } else {
+        console.error('Failed to fetch alerts:', alertsResponse.status, alertsResponse.statusText);
+        toast.error('Failed to load alerts - check authentication');
       }
 
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
-        setStats(statsData.stats || stats);
+        setStats(statsData.stats || {
+          total: 0,
+          critical: 0,
+          warning: 0,
+          info: 0,
+          acknowledged: 0,
+          resolved: 0
+        });
+      } else if (isPreview && (statsResponse.status === 401 || statsResponse.status === 500)) {
+        // Mock stats for preview
+        setStats({
+          total: 4,
+          critical: 2,
+          warning: 1,
+          info: 1,
+          acknowledged: 2,
+          resolved: 1
+        });
+      } else {
+        console.error('Failed to fetch stats:', statsResponse.status, statsResponse.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch alerts:', error);
@@ -69,7 +146,7 @@ export default function AlertsDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [stats]);
+  }, []);
 
   useEffect(() => {
     fetchAlerts();
