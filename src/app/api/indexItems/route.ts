@@ -121,83 +121,98 @@ export async function GET(req: NextRequest) {
 
     // Parameters are now validated and normalized by the validation middleware
 
-    // Optimized cache key
-    const cacheKey = `${CACHE_PREFIX}${campus}:${letter}:${search}`;
+    // Smart cache key strategy - don't cache short searches to prevent pollution
+    const shouldCache = !search || search.length >= 3;
+    const cacheKey = shouldCache ? `${CACHE_PREFIX}${campus}:${letter}:${search}` : null;
     
-    // Try cache first with timing
+    // Try cache first with timing (only if we should cache)
     let indexItems: any;
-    try {
-      const { result: cached, cacheTime } = await timeCacheOperation(
-        () => kv.get(cacheKey),
-        'get'
-      );
-      cacheQueryTime = cacheTime;
-      
-      if (cached) {
-        cacheHit = true;
-        const metrics = await perfMonitor.recordMetrics(200, {
-          cacheHit: true,
-          cacheQueryTime,
-          resultCount: Array.isArray(cached) ? cached.length : 0
-        });
+    if (cacheKey) {
+      try {
+        const { result: cached, cacheTime } = await timeCacheOperation(
+          () => kv.get(cacheKey),
+          'get'
+        );
+        cacheQueryTime = cacheTime;
         
-        // Log activity for cache hit
-        await ActivityLogger.logApiRequest({
-          request: req,
-          action: 'VIEW_ITEMS',
-          resource: 'indexItems',
-          statusCode: 200,
-          duration: metrics.responseTime,
-          details: {
-            campus,
-            letter,
-            search,
-            resultCount: Array.isArray(cached) ? cached.length : 0,
-            cacheHit: true
-          }
-        });
-        
-        return NextResponse.json(cached, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=14400, s-maxage=14400',
-            'X-Cache': 'HIT',
-            'X-Response-Time': `${metrics.responseTime}ms`,
-            'X-Cache-Time': `${cacheQueryTime}ms`,
-            'X-RateLimit-Remaining': remaining.toString()
-          }
-        });
+        if (cached) {
+          cacheHit = true;
+          const metrics = await perfMonitor.recordMetrics(200, {
+            cacheHit: true,
+            cacheQueryTime,
+            resultCount: Array.isArray(cached) ? cached.length : 0
+          });
+          
+          // Log activity for cache hit
+          await ActivityLogger.logApiRequest({
+            request: req,
+            action: 'VIEW_ITEMS',
+            resource: 'indexItems',
+            statusCode: 200,
+            duration: metrics.responseTime,
+            details: {
+              campus,
+              letter,
+              search,
+              resultCount: Array.isArray(cached) ? cached.length : 0,
+              cacheHit: true
+            }
+          });
+          
+          return NextResponse.json(cached, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Cache-Control': 'public, max-age=14400, s-maxage=14400',
+              'X-Cache': 'HIT',
+              'X-Response-Time': `${metrics.responseTime}ms`,
+              'X-Cache-Time': `${cacheQueryTime}ms`,
+              'X-RateLimit-Remaining': remaining.toString()
+            }
+          });
+        }
+      } catch (cacheError) {
+        console.warn('Cache read failed:', cacheError);
       }
-    } catch (cacheError) {
-      console.warn('Cache read failed:', cacheError);
     }
 
     // Optimized database query using performance optimizations
     const startTime = performance.now();
     
-    // Use optimized query with multi-level caching
-    indexItems = await PerformanceOptimizer.getWithCache(
-      cacheKey,
-      () => QueryOptimizer.getIndexItems({
+    // Use optimized query with multi-level caching (only if we should cache)
+    if (cacheKey) {
+      indexItems = await PerformanceOptimizer.getWithCache(
+        cacheKey,
+        () => QueryOptimizer.getIndexItems({
+          campus,
+          letter,
+          search
+        }),
+        {
+          priority: campus ? 'hot' : 'warm', // Campus queries are typically more popular
+          redisTtl: search ? 1800 : CACHE_TTL, // Shorter TTL for search queries (30 min vs 4 hours)
+          memoryTtl: 5 * 60 * 1000 // 5 minutes in memory for ultra-fast repeat requests
+        }
+      );
+    } else {
+      // Direct query without caching for short searches
+      indexItems = await QueryOptimizer.getIndexItems({
         campus,
         letter,
         search
-      }),
-      {
-        priority: campus ? 'hot' : 'warm', // Campus queries are typically more popular
-        redisTtl: CACHE_TTL,
-        memoryTtl: 5 * 60 * 1000 // 5 minutes in memory for ultra-fast repeat requests
-      }
-    );
+      });
+    }
     
     dbQueryTime = performance.now() - startTime;
 
-    // Cache the results asynchronously (don't wait)
-    timeCacheOperation(
-      () => kv.set(cacheKey, indexItems, { ex: CACHE_TTL }),
-      'set'
-    ).catch(err => console.warn('Cache write failed:', err));
+    // Cache the results asynchronously (don't wait) - only if we should cache
+    if (cacheKey) {
+      const cacheTTL = search ? 1800 : CACHE_TTL; // Shorter TTL for search queries
+      timeCacheOperation(
+        () => kv.set(cacheKey, indexItems, { ex: cacheTTL }),
+        'set'
+      ).catch(err => console.warn('Cache write failed:', err));
+    }
 
     // Record final metrics
     const metrics = await perfMonitor.recordMetrics(200, {
@@ -232,12 +247,15 @@ export async function GET(req: NextRequest) {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400',
-        'X-Cache': 'MISS',
+        'Cache-Control': cacheKey 
+          ? 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400'
+          : 'no-cache, no-store, must-revalidate', // Don't cache short searches in browser
+        'X-Cache': cacheKey ? 'MISS' : 'SKIP',
         'X-Response-Time': `${metrics.responseTime}ms`,
         'X-DB-Time': `${dbQueryTime}ms`,
         'X-Cache-Time': cacheQueryTime ? `${cacheQueryTime}ms` : 'N/A',
         'X-Results-Count': indexItems.length.toString(),
+        'X-Cache-Strategy': cacheKey ? 'cached' : 'uncached-short-search',
         'X-RateLimit-Remaining': remaining.toString()
       }
     });

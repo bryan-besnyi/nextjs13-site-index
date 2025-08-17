@@ -315,8 +315,11 @@ export class QueryOptimizer {
         where: whereConditions,
         select: selectFields,
         orderBy: { title: 'asc' },
-        // Add limit to prevent large result sets
-        take: 10000,
+        // Smart result limiting based on query type
+        take: search && search.length <= 3 ? 100 : // Limit broad searches to 100 results
+              search ? 500 : // Specific searches up to 500 results  
+              campus || letter ? 2000 : // Campus/letter filters up to 2000
+              1000, // Default limit for "show all"
       }),
       `query:index:${JSON.stringify(filters)}`
     );

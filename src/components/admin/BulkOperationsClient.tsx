@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ import { IndexItem, BulkOperation, BulkEditData } from '@/types';
 
 export default function BulkOperationsClient() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCampus, setSelectedCampus] = useState('');
   const [selectedLetter, setSelectedLetter] = useState('');
   const [items, setItems] = useState<IndexItem[]>([]);
@@ -53,11 +54,38 @@ export default function BulkOperationsClient() {
 
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
+  // Debounce search query - only search after user stops typing for 500ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Optimized search query with minimum length requirement
+  const shouldSkipSearch = useMemo(() => {
+    const trimmedSearch = debouncedSearchQuery?.trim();
+    // Skip search if query is between 1-2 characters (too short and causes cache pollution)
+    return trimmedSearch && trimmedSearch.length > 0 && trimmedSearch.length < 3;
+  }, [debouncedSearchQuery]);
+
   const fetchItems = useCallback(async () => {
+    // Don't fetch if search is too short
+    if (shouldSkipSearch) {
+      setItems([]);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (searchQuery?.trim()) params.append('search', searchQuery.trim());
+      const trimmedSearch = debouncedSearchQuery?.trim();
+      
+      // Only add search param if it's 3+ characters or empty (for "show all")
+      if (trimmedSearch && trimmedSearch.length >= 3) {
+        params.append('search', trimmedSearch);
+      }
       if (selectedCampus?.trim()) params.append('campus', selectedCampus.trim());
       if (selectedLetter?.trim()) params.append('letter', selectedLetter.trim());
 
@@ -90,11 +118,11 @@ export default function BulkOperationsClient() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, selectedCampus, selectedLetter]);
+  }, [debouncedSearchQuery, selectedCampus, selectedLetter, shouldSkipSearch]);
 
   useEffect(() => {
     fetchItems();
-  }, [searchQuery, selectedCampus, selectedLetter, fetchItems]);
+  }, [fetchItems]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -325,10 +353,16 @@ export default function BulkOperationsClient() {
               <Label htmlFor="search">Search</Label>
               <Input
                 id="search"
-                placeholder="Search titles..."
+                placeholder="Search titles (min 3 characters)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className={shouldSkipSearch ? 'border-yellow-300 bg-yellow-50' : ''}
               />
+              {shouldSkipSearch && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  Enter at least 3 characters to search
+                </p>
+              )}
             </div>
             <div>
               <Label htmlFor="campus-filter">Campus</Label>
