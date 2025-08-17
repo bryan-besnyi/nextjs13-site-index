@@ -5,13 +5,33 @@
  * It re-exports types from domain-specific modules for easy importing.
  */
 
-// Core domain types
+// Core domain types - import carefully to avoid circular dependencies
 export * from './api';
 export * from './admin';
 export * from './auth';
-export * from './forms';
 export * from './performance';
 export * from './ui';
+
+// Re-export form types (but not the forms module to avoid circular dependency)
+export type { 
+  FormFieldProps, 
+  IndexItemFormData, 
+  NewIndexItemFormProps, 
+  EditIndexItemFormProps,
+  SearchFormData,
+  SearchFiltersProps,
+  BulkEditFormData,
+  ImportFormData,
+  SettingsFormData,
+  ValidationResult,
+  FieldError,
+  FormErrors,
+  CampusOption,
+  LetterOption,
+  FormContextValue,
+  AutoSaveConfig,
+  AutoSaveState
+} from './forms';
 
 // Core IndexItem and related types
 export interface IndexItem {

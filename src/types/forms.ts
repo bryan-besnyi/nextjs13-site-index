@@ -3,7 +3,16 @@
  */
 
 import { z } from 'zod';
-import { VALID_CAMPUSES, VALID_LETTERS } from './index';
+
+// Define constants locally to avoid circular dependency
+const VALID_CAMPUSES = [
+  'College of San Mateo',
+  'Skyline College', 
+  'Cañada College',
+  'District Office'
+] as const;
+
+const VALID_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 // Form field types
 export interface FormFieldProps {
