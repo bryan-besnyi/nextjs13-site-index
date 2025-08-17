@@ -122,7 +122,7 @@ export default function BulkOperationsClient() {
 
   useEffect(() => {
     fetchItems();
-  }, [fetchItems]);
+  }, [debouncedSearchQuery, selectedCampus, selectedLetter, shouldSkipSearch]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
