@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { PerformanceMetrics, PerformanceMonitorOptions } from '@/types';
 import PerformanceAlerting from './performance-alerts';
+import { kv } from '@vercel/kv';
 
 // In-memory metrics store (consider Redis for production)
 const metricsStore: PerformanceMetrics[] = [];
@@ -51,6 +52,9 @@ export class PerformanceMonitor {
       metricsStore.splice(0, metricsStore.length - MAX_METRICS);
     }
 
+    // Also store in KV for persistence across deploys
+    await this.storeInKV(metrics);
+
     // Log slow requests
     if (responseTime > 1000) {
       console.warn(`🐌 Slow API request: ${this.method} ${this.endpoint} - ${responseTime}ms`);
@@ -64,6 +68,71 @@ export class PerformanceMonitor {
     }
 
     return metrics;
+  }
+
+  private async storeInKV(metrics: PerformanceMetrics) {
+    try {
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const currentHour = now.getHours();
+      
+      // Increment API call counters
+      await kv.incr('metrics:api:calls:today');
+      await kv.incr(`metrics:hourly:${currentHour}:calls`);
+      await kv.incr(`metrics:daily:${today}:calls`);
+      
+      // Update endpoint-specific metrics
+      await kv.incr(`metrics:endpoint:${metrics.endpoint}:calls`);
+      await kv.incrby(`metrics:endpoint:${metrics.endpoint}:total_time`, metrics.responseTime);
+      
+      if (metrics.statusCode >= 400) {
+        await kv.incr(`metrics:endpoint:${metrics.endpoint}:errors`);
+        await kv.incr('metrics:api:errors:today');
+      }
+      
+      // Update running averages (simple approach)
+      const currentAvgTime = Number(await kv.get('metrics:api:response_time:avg')) || 0;
+      const currentCount = Number(await kv.get('metrics:api:calls:today')) || 1;
+      const newAvgTime = ((currentAvgTime * (currentCount - 1)) + metrics.responseTime) / currentCount;
+      await kv.set('metrics:api:response_time:avg', Math.round(newAvgTime));
+      
+      // Update hourly average response time
+      const hourlyAvgTime = Number(await kv.get(`metrics:hourly:${currentHour}:avg_time`)) || 0;
+      const hourlyCount = Number(await kv.get(`metrics:hourly:${currentHour}:calls`)) || 1;
+      const newHourlyAvg = ((hourlyAvgTime * (hourlyCount - 1)) + metrics.responseTime) / hourlyCount;
+      await kv.set(`metrics:hourly:${currentHour}:avg_time`, Math.round(newHourlyAvg));
+      
+      // Update cache hit rate if applicable
+      if (metrics.cacheHit !== undefined) {
+        const cacheKey = 'metrics:cache:hits';
+        const missKey = 'metrics:cache:misses';
+        
+        if (metrics.cacheHit) {
+          await kv.incr(cacheKey);
+        } else {
+          await kv.incr(missKey);
+        }
+        
+        // Calculate and store hit rate
+        const hits = Number(await kv.get(cacheKey)) || 0;
+        const misses = Number(await kv.get(missKey)) || 0;
+        const total = hits + misses;
+        if (total > 0) {
+          const hitRate = hits / total;
+          await kv.set('metrics:cache:hit_rate', hitRate);
+        }
+      }
+      
+      // Calculate and store error rate
+      const totalCalls = Number(await kv.get('metrics:api:calls:today')) || 1;
+      const totalErrors = Number(await kv.get('metrics:api:errors:today')) || 0;
+      const errorRate = totalErrors / totalCalls;
+      await kv.set('metrics:api:error_rate', errorRate);
+      
+    } catch (error) {
+      console.error('Failed to store metrics in KV:', error);
+      // Don't throw - we don't want to break the API response
+    }
   }
 
   static getMetrics(limit = 100): PerformanceMetrics[] {
