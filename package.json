@@ -93,6 +93,7 @@
     "jest": "^30.0.5",
     "jest-axe": "^10.0.0",
     "jest-environment-jsdom": "^30.0.5",
+    "next-test-api-route-handler": "^4.0.16",
     "node-mocks-http": "^1.17.2",
     "nyc": "^17.1.0",
     "prisma": "^5.0.0",
