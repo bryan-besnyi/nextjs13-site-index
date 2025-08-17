@@ -10,8 +10,8 @@ const ScrollArea = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const [, setScrollPosition] = React.useState(0);
 
-  const handleScroll = (event) => {
-    setScrollPosition(event.target.scrollTop);
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    setScrollPosition((event.target as HTMLElement).scrollTop);
   };
 
   return (

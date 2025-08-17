@@ -189,8 +189,8 @@ describe('IndexItems API', () => {
     )
 
     // At least one should be rate limited
-    cy.wrap(Promise.all(requests)).then((responses: any[]) => {
-      const rateLimited = responses.some(response => response.status === 429)
+    cy.wrap(Promise.all(requests)).then((responses) => {
+      const rateLimited = (responses as any[]).some((response: any) => response.status === 429)
       // Note: This might not always trigger in test environment
       // depending on rate limiting implementation
     })

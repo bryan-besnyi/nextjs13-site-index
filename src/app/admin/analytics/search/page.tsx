@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -55,10 +55,12 @@ export default function SearchInsightsPage() {
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<'week' | 'month' | 'year'>('month');
 
-  const fetchSearchData = async () => {
+  const fetchSearchData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/admin/analytics/search?range=${dateRange}`);
+      const response = await fetch(`/api/admin/analytics/search?range=${dateRange}`, {
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error('Failed to fetch search data');
       
       const data = await response.json();
@@ -74,11 +76,11 @@ export default function SearchInsightsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
 
   useEffect(() => {
     fetchSearchData();
-  }, [dateRange]); // fetchSearchData is stable, no need to include
+  }, [fetchSearchData]);
 
   const exportReport = () => {
     const report = {

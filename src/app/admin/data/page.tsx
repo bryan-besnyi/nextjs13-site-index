@@ -15,7 +15,7 @@ export default async function AdminDataPage({
   const campus = params.campus || '';
   const page = parseInt(params.page || '1');
   
-  let initialData = [];
+  let initialData: any[] = [];
   let hasError = false;
   let errorMessage = '';
 
@@ -80,7 +80,7 @@ export default async function AdminDataPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Browse Index Items</h1>

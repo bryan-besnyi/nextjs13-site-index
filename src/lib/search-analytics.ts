@@ -1,4 +1,5 @@
 import { kv } from '@vercel/kv';
+import { SearchEvent, ClickEvent, SearchAnalytics } from '@/types';
 
 // Keys for storing search analytics
 const SEARCH_PREFIX = 'search:';
@@ -7,22 +8,6 @@ const SEARCH_TOTAL_KEY = `${SEARCH_PREFIX}total`;
 const SEARCH_USERS_KEY = `${SEARCH_PREFIX}users`;
 const SEARCH_NO_RESULTS_KEY = `${SEARCH_PREFIX}no_results`;
 const SEARCH_CLICKS_KEY = `${SEARCH_PREFIX}clicks`;
-
-interface SearchEvent {
-  term: string;
-  timestamp: Date;
-  resultCount: number;
-  campus?: string;
-  letter?: string;
-  userId?: string;
-}
-
-interface ClickEvent {
-  searchTerm: string;
-  clickedItemId: number;
-  position: number;
-  timestamp: Date;
-}
 
 /**
  * Track a search event

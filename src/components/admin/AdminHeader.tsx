@@ -24,9 +24,10 @@ import {
 interface AdminHeaderProps {
   onMenuClick?: () => void;
   isMobileMenuOpen?: boolean;
+  onCommandPaletteClick?: () => void;
 }
 
-export default function AdminHeader({ onMenuClick, isMobileMenuOpen }: AdminHeaderProps) {
+export default function AdminHeader({ onMenuClick, isMobileMenuOpen, onCommandPaletteClick }: AdminHeaderProps) {
   const { data: session } = useSession();
 
   const handleSignOut = async () => {
@@ -34,13 +35,7 @@ export default function AdminHeader({ onMenuClick, isMobileMenuOpen }: AdminHead
   };
 
   const openCommandPalette = () => {
-    // Trigger command palette (will implement later)
-    const event = new KeyboardEvent('keydown', {
-      key: 'k',
-      metaKey: true,
-      ctrlKey: true,
-    });
-    document.dispatchEvent(event);
+    onCommandPaletteClick?.();
   };
 
   return (

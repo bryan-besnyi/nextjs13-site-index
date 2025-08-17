@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-singleton';
 import { kv } from '@vercel/kv';
-
-interface PerformanceMetric {
-  timestamp: Date;
-  endpoint: string;
-  method: string;
-  responseTime: number;
-  statusCode: number;
-  cacheHit: boolean;
-  userAgent?: string;
-  ipAddress?: string;
-  dbQueryTime?: number;
-  cacheQueryTime?: number;
-  memoryUsage?: number;
-  errorMessage?: string;
-}
+import { PerformanceMetric, SystemPerformance, ApiMetrics } from '@/types';
 
 export class PerformanceCollector {
   private static metricsBuffer: PerformanceMetric[] = [];
@@ -115,13 +101,7 @@ export class PerformanceCollector {
   /**
    * Get comprehensive system performance snapshot
    */
-  static async getSystemPerformance(): Promise<{
-    database: { status: string; avgResponseTime: number; connectionCount: number };
-    cache: { status: string; hitRate: number; keyCount: number };
-    memory: { usage: number; limit: number; percentage: number };
-    api: { totalRequests: number; avgResponseTime: number; errorRate: number };
-    uptime: number;
-  }> {
+  static async getSystemPerformance(): Promise<SystemPerformance> {
     try {
       // Test database performance
       const dbStart = performance.now();
@@ -170,18 +150,7 @@ export class PerformanceCollector {
   /**
    * Get actual API performance metrics from collected data
    */
-  static async getActualApiMetrics(hours: number = 24): Promise<{
-    totalRequests: number;
-    avgResponseTime: number;
-    medianResponseTime: number;
-    p90ResponseTime: number;
-    p95ResponseTime: number;
-    p99ResponseTime: number;
-    errorRate: number;
-    slowestEndpoints: Array<{ endpoint: string; avgTime: number }>;
-    fastestEndpoints: Array<{ endpoint: string; avgTime: number }>;
-    cacheHitRate: number;
-  }> {
+  static async getActualApiMetrics(hours: number = 24): Promise<ApiMetrics> {
     const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
     const metrics = this.metricsBuffer.filter(m => m.timestamp >= cutoffTime);
 

@@ -25,10 +25,13 @@ export default function DeleteButton({ id, itemName }: DeleteButtonProps) {
 
   return (
     <button
-      className="px-3 py-1 text-sm font-semibold text-red-900 bg-red-200 rounded shadow-sm hover:bg-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+      className="px-3 py-1 text-sm font-semibold text-red-900 bg-red-200 rounded shadow-sm hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
       onClick={() => handleDelete(id, itemName)}
+      aria-label={`Delete ${itemName}`}
+      type="button"
     >
-      Delete <span className="sr-only">{itemName}</span> 🗑️
+      Delete
+      <span aria-hidden="true" className="ml-1">🗑️</span>
     </button>
   );
 }

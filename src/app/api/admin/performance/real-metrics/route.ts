@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Performance test error:', error);
     return NextResponse.json(
-      { error: 'Performance test failed', details: error.message },
+      { error: 'Performance test failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

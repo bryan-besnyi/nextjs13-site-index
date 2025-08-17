@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import authOptions from '../../../auth/[...nextauth]/options';
 import fs from 'fs';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma-singleton';
 
 // Get all backup files and statistics
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Check authentication (bypass in development)
+    if (process.env.NODE_ENV !== 'development') {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const backupDir = path.join(process.cwd(), 'backups');
@@ -83,10 +84,12 @@ export async function GET(request: NextRequest) {
 // Create a new backup
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Check authentication (bypass in development)
+    if (process.env.NODE_ENV !== 'development') {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const now = new Date();
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest) {
       indexItems,
       backupDate: now.toISOString(),
       totalRecords: indexItems.length,
-      createdBy: session.user.email
+      createdBy: process.env.NODE_ENV === 'development' ? 'development-user' : (await getServerSession(authOptions))?.user?.email || 'unknown'
     };
     
     // Save JSON backup

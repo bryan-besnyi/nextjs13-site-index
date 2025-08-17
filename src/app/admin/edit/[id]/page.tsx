@@ -63,5 +63,12 @@ export default async function AdminEditPage({
     return notFound();
   }
 
-  return <EditIndexItemForm item={indexItem} />;
+  // Convert Date objects to strings for the component
+  const itemWithStringDates = {
+    ...indexItem,
+    createdAt: indexItem.createdAt.toISOString(),
+    updatedAt: indexItem.updatedAt.toISOString()
+  };
+
+  return <EditIndexItemForm item={itemWithStringDates} />;
 }

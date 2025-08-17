@@ -23,12 +23,12 @@ const nextConfig = {
       {
         source: '/api/(.*)',
         headers: [
-          // Allow for specific domains to have access or * for all
+          // Restrict CORS to specific trusted domains
           {
             key: 'Access-Control-Allow-Origin',
-            value: '*'
-            // DOES NOT WORK
-            // value: process.env.ALLOWED_ORIGIN,
+            value: process.env.NODE_ENV === 'production' 
+              ? 'https://site-index.smccd.edu'
+              : 'http://localhost:3000'
           },
           {
             key: 'Access-Control-Allow-Methods',

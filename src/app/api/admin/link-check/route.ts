@@ -49,7 +49,10 @@ export async function GET(request: NextRequest) {
           );
         }
         
-        const filteredResults = await checkLinksByFilter({ campus, letter });
+        const filteredResults = await checkLinksByFilter({ 
+          campus: campus || undefined, 
+          letter: letter || undefined 
+        });
         return NextResponse.json({ results: filteredResults });
 
       default:

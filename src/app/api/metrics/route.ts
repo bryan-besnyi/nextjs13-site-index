@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import authOptions from '@/app/api/auth/[...nextauth]/options';
 import { PerformanceMonitor } from '@/lib/performance-monitor';
 
 export async function GET(req: NextRequest) {
   try {
-    // Simple auth check (you might want to add proper authentication)
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.includes('Bearer')) {
-      // For now, allow access but log it
-      console.log('Metrics accessed without auth from:', req.headers.get('x-forwarded-for'));
+    // Proper authentication check
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized access. Admin authentication required.' },
+        { status: 401 }
+      );
     }
 
     const searchParams = req.nextUrl.searchParams;

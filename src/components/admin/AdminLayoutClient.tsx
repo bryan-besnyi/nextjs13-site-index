@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
+import CommandPalette from './CommandPalette';
 import { cn } from '@/lib/utils';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -12,6 +13,7 @@ interface AdminLayoutClientProps {
 
 export default function AdminLayoutClient({ children }: AdminLayoutClientProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const focusTrapRef = useFocusTrap(isMobileMenuOpen);
 
   const toggleMobileMenu = () => {
@@ -58,6 +60,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
         <AdminHeader 
           onMenuClick={toggleMobileMenu}
           isMobileMenuOpen={isMobileMenuOpen}
+          onCommandPaletteClick={() => setIsCommandPaletteOpen(true)}
         />
         <main 
           id="main-content"
@@ -65,11 +68,19 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
           role="main"
           aria-label="Main content area"
         >
-          <div className="container mx-auto p-6 max-w-7xl">
-            {children}
+          <div className="w-full p-6 sm:p-8 lg:p-10">
+            <div className="w-full max-w-none">
+              {children}
+            </div>
           </div>
         </main>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette 
+        open={isCommandPaletteOpen} 
+        setOpen={setIsCommandPaletteOpen} 
+      />
     </div>
   );
 }

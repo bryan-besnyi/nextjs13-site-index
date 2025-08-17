@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +38,7 @@ interface TimeSeriesData {
 }
 
 export default function PerformancePage() {
+  const { data: session, status } = useSession();
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
   const [endpoints, setEndpoints] = useState<EndpointMetric[]>([]);
   const [timeSeries, setTimeSeries] = useState<TimeSeriesData[]>([]);
@@ -44,10 +46,23 @@ export default function PerformancePage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const fetchPerformanceData = async () => {
+  const fetchPerformanceData = useCallback(async () => {
+    if (status !== 'authenticated') {
+      return;
+    }
+
     try {
-      const response = await fetch('/api/admin/performance');
-      if (!response.ok) throw new Error('Failed to fetch performance data');
+      const response = await fetch('/api/admin/performance', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch performance data');
+      }
       
       const data = await response.json();
       setMetrics(data.metrics);
@@ -56,25 +71,35 @@ export default function PerformancePage() {
       setLastUpdate(new Date());
       setError(null);
     } catch (err) {
-      setError('Failed to load performance data');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to load performance data');
+      console.error('Performance data fetch error:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [status]);
 
   useEffect(() => {
+    if (status === 'loading') return; // Don't fetch while session is loading
+    
+    if (status === 'unauthenticated') {
+      setError('Not authenticated');
+      setLoading(false);
+      return;
+    }
+
     fetchPerformanceData();
     const interval = setInterval(fetchPerformanceData, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [status, fetchPerformanceData]);
 
-  if (loading) {
+  if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading performance data...</p>
+          <p className="text-gray-600">
+            {status === 'loading' ? 'Loading session...' : 'Loading performance data...'}
+          </p>
         </div>
       </div>
     );
@@ -96,7 +121,7 @@ export default function PerformancePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

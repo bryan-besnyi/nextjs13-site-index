@@ -29,15 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-
-// Define the data type
-type IndexItem = {
-  id: number;
-  title: string;
-  letter: string;
-  campus: string;
-  url: string;
-};
+import { IndexItem, DataTableEnhancedProps } from '@/types';
 
 // Helper function for copying to clipboard
 const copyToClipboard = async (text: string) => {
@@ -179,10 +171,6 @@ const columns: ColumnDef<IndexItem>[] = [
   },
 ];
 
-interface DataTableEnhancedProps {
-  initialData: IndexItem[];
-}
-
 export default function DataTableEnhanced({ initialData }: DataTableEnhancedProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -293,19 +281,19 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
     <Card>
       <CardHeader>
         <CardTitle>Index Items</CardTitle>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
             <Input
               placeholder="Filter titles..."
               value={(table.getColumn('title')?.getFilterValue() as string) ?? ''}
               onChange={(event) =>
                 table.getColumn('title')?.setFilterValue(event.target.value)
               }
-              className="max-w-sm"
+              className="w-full sm:max-w-sm"
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto">
                   Campus <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -340,10 +328,10 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto">
                   Columns <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -367,7 +355,7 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
                   })}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button asChild>
+            <Button asChild className="w-full sm:w-auto">
               <Link href="/admin/new">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Item
@@ -397,11 +385,11 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
 
         {/* Bulk Actions Bar */}
         {selectedRowCount > 0 && (
-          <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950 p-3 rounded-md">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between bg-blue-50 dark:bg-blue-950 p-3 rounded-md">
             <span className="text-sm font-medium">
               {selectedRowCount} item{selectedRowCount > 1 ? 's' : ''} selected
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -441,17 +429,18 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
       
       <CardContent>
         {/* Data Table */}
-        <div 
-          className="rounded-md border"
-          role="table"
-          aria-label="Index items data table"
-          aria-describedby="table-summary"
-        >
-          <div id="table-summary" className="sr-only">
-            Table showing {table.getFilteredRowModel().rows.length} index items with columns for selection, ID, title, letter, campus, URL, and actions. Use arrow keys to navigate between cells.
-          </div>
-          
-          <table className="w-full">
+        <div className="relative rounded-md border overflow-hidden">
+          <div 
+            className="overflow-x-auto"
+            role="table"
+            aria-label="Index items data table"
+            aria-describedby="table-summary"
+          >
+            <div id="table-summary" className="sr-only">
+              Table showing {table.getFilteredRowModel().rows.length} index items with columns for selection, ID, title, letter, campus, URL, and actions. Use arrow keys to navigate between cells.
+            </div>
+            
+            <table className="w-full min-w-[800px]">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b">
@@ -508,10 +497,11 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between py-4">
           <div className="text-sm text-muted-foreground">
             {table.getFilteredSelectedRowModel().rows.length} of{' '}
             {table.getFilteredRowModel().rows.length} row(s) selected.

@@ -17,53 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-interface HealthStatus {
-  status: 'pass' | 'warn' | 'fail';
-  componentType: string;
-  observedValue?: number;
-  observedUnit?: string;
-  time: string;
-}
-
-interface HealthCheck {
-  status: 'pass' | 'warn' | 'fail';
-  version: string;
-  releaseId: string;
-  description: string;
-  checks: {
-    [key: string]: HealthStatus[];
-  };
-  uptime: number;
-  responseTime: number;
-}
-
-interface SystemMetrics {
-  database: {
-    status: 'healthy' | 'warning' | 'error';
-    connections: number;
-    responseTime: number;
-    uptime: string;
-  };
-  cache: {
-    status: 'healthy' | 'warning' | 'error';
-    hitRate: number;
-    memory: number;
-    keys: number;
-  };
-  api: {
-    status: 'healthy' | 'warning' | 'error';
-    requests24h: number;
-    avgResponseTime: number;
-    errorRate: number;
-  };
-  system: {
-    status: 'healthy' | 'warning' | 'error';
-    memory: number;
-    cpu: number;
-    disk: number;
-  };
-}
+import { HealthStatus, HealthCheck, SystemMetrics } from '@/types';
 
 export default function SystemHealthClient() {
   const [healthData, setHealthData] = useState<HealthCheck | null>(null);

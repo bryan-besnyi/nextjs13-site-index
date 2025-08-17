@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Extract the items based on the result structure
-    const items = result.indexItems || result.items || result.results || [];
+    const items = (result as any).indexItems || (result as any).items || (result as any).results || [];
     
     // Track search analytics (non-blocking)
     if (search || letter || campus) {
@@ -68,8 +68,8 @@ export async function GET(req: NextRequest) {
         term: search || `${campus || ''}:${letter || ''}`.trim(),
         timestamp: new Date(),
         resultCount: items.length,
-        campus,
-        letter,
+        campus: campus || undefined,
+        letter: letter || undefined,
         userId: ip // Using IP as a simple user identifier
       }).catch(err => console.warn('Search tracking failed:', err));
     }

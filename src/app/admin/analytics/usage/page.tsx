@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,10 +45,12 @@ export default function UsageStatsPage() {
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<'week' | 'month' | 'year'>('month');
 
-  const fetchUsageData = async () => {
+  const fetchUsageData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/admin/analytics/usage?range=${dateRange}`);
+      const response = await fetch(`/api/admin/analytics/usage?range=${dateRange}`, {
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error('Failed to fetch usage data');
       
       const data = await response.json();
@@ -63,11 +65,11 @@ export default function UsageStatsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
 
   useEffect(() => {
     fetchUsageData();
-  }, [dateRange]); // fetchUsageData is stable, no need to include
+  }, [fetchUsageData]);
 
   const exportToCSV = () => {
     const headers = ['Date', 'API Calls'];

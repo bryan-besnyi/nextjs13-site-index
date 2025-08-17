@@ -23,27 +23,7 @@ import {
   X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-interface IndexItem {
-  id: number;
-  title: string;
-  letter: string;
-  campus: string;
-  url: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface BulkOperation {
-  id: string;
-  type: 'update' | 'delete' | 'move';
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  itemCount: number;
-  processedCount: number;
-  errors: string[];
-  startTime?: string;
-  endTime?: string;
-}
+import { IndexItem, BulkOperation, BulkEditData } from '@/types';
 
 export default function BulkOperationsClient() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,39 +116,61 @@ export default function BulkOperationsClient() {
     );
   };
 
-  const simulateProcessing = async (operation: BulkOperation, processingFn: (itemId: number) => Promise<void>) => {
+  const executeBulkOperation = async (operation: BulkOperation, operationType: 'delete' | 'update', updateData?: any) => {
     updateOperation(operation.id, { status: 'running' });
     
-    const selectedItemsArray = Array.from(selectedItems);
-    let processed = 0;
-    const errors: string[] = [];
-
-    for (const itemId of selectedItemsArray) {
-      try {
-        await processingFn(itemId);
-        processed++;
-        updateOperation(operation.id, { processedCount: processed });
-        
-        // Add small delay to show progress
-        await new Promise(resolve => setTimeout(resolve, 200));
-      } catch (error) {
-        errors.push(`Item ${itemId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    try {
+      // Get CSRF token
+      const csrfResponse = await fetch('/api/csrf-token');
+      const csrfData = await csrfResponse.json();
+      
+      // Prepare bulk operation request
+      const requestBody: any = {
+        operation: operationType,
+        items: Array.from(selectedItems)
+      };
+      
+      if (operationType === 'update' && updateData) {
+        requestBody.updateData = updateData;
       }
-    }
 
-    updateOperation(operation.id, {
-      status: errors.length === 0 ? 'completed' : 'failed',
-      processedCount: processed,
-      errors,
-      endTime: new Date().toISOString()
-    });
+      // Execute bulk operation
+      const response = await fetch('/api/admin/bulk', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          [csrfData.headerName]: csrfData.token
+        },
+        body: JSON.stringify(requestBody)
+      });
 
-    if (errors.length === 0) {
-      toast.success(`Successfully processed ${processed} items`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Bulk operation failed');
+      }
+
+      // Update operation status
+      updateOperation(operation.id, {
+        status: 'completed',
+        processedCount: result.count,
+        endTime: new Date().toISOString()
+      });
+
+      toast.success(`Successfully ${operationType}d ${result.count} items in ${result.duration}ms`);
       setSelectedItems(new Set());
       fetchItems(); // Refresh the list
-    } else {
-      toast.error(`Completed with ${errors.length} errors`);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      updateOperation(operation.id, {
+        status: 'failed',
+        errors: [errorMessage],
+        endTime: new Date().toISOString()
+      });
+      
+      toast.error(`Bulk operation failed: ${errorMessage}`);
     }
   };
 
@@ -178,17 +180,42 @@ export default function BulkOperationsClient() {
       return;
     }
 
+    // Validate that we have some update data
+    const hasUpdates = bulkEditData.campus || bulkEditData.letter || 
+                      bulkEditData.titlePrefix || bulkEditData.titleSuffix ||
+                      bulkEditData.urlReplace.from;
+
+    if (!hasUpdates) {
+      toast.error('Please specify what to update');
+      return;
+    }
+
     const operation = createOperation('update');
     
-    await simulateProcessing(operation, async (itemId) => {
-      // Simulate API call
-      const updates: any = {};
-      if (bulkEditData.campus) updates.campus = bulkEditData.campus;
-      if (bulkEditData.letter) updates.letter = bulkEditData.letter;
-      
-      // Here you would make the actual API call
-      // await updateIndexItem(itemId, updates);
-    });
+    // Prepare update data
+    const updateData: any = {};
+    if (bulkEditData.campus) updateData.campus = bulkEditData.campus;
+    if (bulkEditData.letter) updateData.letter = bulkEditData.letter;
+    
+    // Handle title prefix/suffix (would need server-side logic for complex transformations)
+    if (bulkEditData.titlePrefix || bulkEditData.titleSuffix) {
+      toast('Title prefix/suffix updates are not yet supported. Use campus/letter changes for now.', {
+        icon: 'ℹ️',
+        duration: 4000
+      });
+      return;
+    }
+    
+    // Handle URL replacement (would need server-side logic)
+    if (bulkEditData.urlReplace.from && bulkEditData.urlReplace.to) {
+      toast('URL replacement is not yet supported. Use individual edits for URL changes.', {
+        icon: 'ℹ️',
+        duration: 4000
+      });
+      return;
+    }
+
+    await executeBulkOperation(operation, 'update', updateData);
   };
 
   const handleBulkDelete = async () => {
@@ -204,11 +231,7 @@ export default function BulkOperationsClient() {
     if (!confirmed) return;
 
     const operation = createOperation('delete');
-    
-    await simulateProcessing(operation, async (itemId) => {
-      // Here you would make the actual API call
-      // await deleteIndexItem(itemId);
-    });
+    await executeBulkOperation(operation, 'delete');
   };
 
   const handleBulkMove = async () => {
@@ -218,11 +241,9 @@ export default function BulkOperationsClient() {
     }
 
     const operation = createOperation('move');
+    const updateData = { campus: bulkEditData.campus };
     
-    await simulateProcessing(operation, async (itemId) => {
-      // Here you would make the actual API call
-      // await updateIndexItem(itemId, { campus: bulkEditData.campus });
-    });
+    await executeBulkOperation(operation, 'update', updateData);
   };
 
   const getSelectedItemsPreview = () => {

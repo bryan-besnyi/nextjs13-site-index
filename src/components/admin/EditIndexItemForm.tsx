@@ -118,18 +118,19 @@ export default function EditIndexItemForm({ item }: EditIndexItemFormProps) {
         throw new Error('Campus selection is required');
       }
 
-      // Create FormData for server action
-      const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('url', data.url);
-      formData.append('letter', data.letter);
-      formData.append('campus', data.campus);
+      // Call server action
+      const { updateIndexItemAction } = await import('@/app/_actions');
+      const result = await updateIndexItemAction(
+        item.id,
+        data.title,
+        data.url,
+        data.letter,
+        data.campus
+      );
 
-      // Call server action (you would implement this)
-      // await updateIndexItemAction(item.id, formData);
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (result.error) {
+        throw new Error(typeof result.error === 'string' ? result.error : 'Update failed');
+      }
 
       setSubmitSuccess(true);
       toast.success('Index item updated successfully!');

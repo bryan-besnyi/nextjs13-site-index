@@ -1,11 +1,5 @@
 import { NextResponse } from 'next/server';
-
-export interface ApiError {
-  message: string;
-  code?: string;
-  statusCode: number;
-  details?: any;
-}
+import { ApiError } from '@/types';
 
 export class ApiErrorHandler {
   static handle(error: unknown): NextResponse {

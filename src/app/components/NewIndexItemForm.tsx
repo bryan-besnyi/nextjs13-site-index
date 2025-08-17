@@ -18,29 +18,14 @@ import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
+import { IndexItemFormData, CreateIndexItemSchema, CampusInfo, VALID_CAMPUSES } from '@/types';
 
-const campusInfo = [
+const campusInfo: CampusInfo[] = [
   { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
   { id: 'canadaCollege', value: 'Cañada College' },
   { id: 'districtOffice', value: 'District Office' },
   { id: 'skylineCollege', value: 'Skyline College' }
 ];
-
-const formSchema = z.object({
-  title: z.string().min(1, { message: 'Title is required' }),
-  url: z.string().url({ message: 'URL must be valid' }),
-  letter: z
-    .string()
-    .length(1, { message: 'Letter must be a single character' }),
-  campus: z.string().min(1, { message: 'Campus is required' })
-});
-
-interface FormValues {
-  title: string;
-  url: string;
-  letter: string;
-  campus: string;
-}
 
 const NewIndexItemForm: React.FC = () => {
   const router = useRouter();
@@ -48,8 +33,8 @@ const NewIndexItemForm: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<IndexItemFormData>({
+    resolver: zodResolver(CreateIndexItemSchema),
     defaultValues: {
       title: '',
       url: '',
@@ -58,7 +43,7 @@ const NewIndexItemForm: React.FC = () => {
     }
   });
 
-  const onSubmit: SubmitHandler<FormValues> = async (data, event) => {
+  const onSubmit: SubmitHandler<IndexItemFormData> = async (data, event) => {
     const submitType = (event?.nativeEvent as any).submitter.name;
     setIsSubmitting(true);
     setSubmitError(null);

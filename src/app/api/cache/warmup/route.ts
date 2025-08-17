@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Cache warmup error:', error);
     return NextResponse.json(
-      { error: 'Failed to warm cache', details: error.message },
+      { error: 'Failed to warm cache', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json({
       stats: statsResult.stats,
-      recommendation: statsResult.stats.totalKeys < 10 ? 
+      recommendation: statsResult.stats && statsResult.stats.totalKeys < 10 ? 
         'Cache is cold. Consider running warmup.' : 
         'Cache is warm and healthy.',
       timestamp: new Date().toISOString()

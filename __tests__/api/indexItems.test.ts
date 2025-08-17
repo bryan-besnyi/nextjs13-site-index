@@ -2,9 +2,36 @@
  * @jest-environment node
  */
 
-import { createMocks } from 'node-mocks-http'
+import { NextRequest } from 'next/server'
 import { GET, POST, DELETE } from '@/app/api/indexItems/route'
 import { prisma } from '@/lib/prisma-singleton'
+
+// Helper function to create NextRequest-like objects for testing
+function createMockRequest(method: string, url: string, body?: any) {
+  const request = {
+    method,
+    url: `http://localhost:3000${url}`,
+    headers: new Map([
+      ['user-agent', 'jest-test-runner'],
+      ['content-type', 'application/json']
+    ]),
+    nextUrl: new URL(`http://localhost:3000${url}`),
+    json: () => Promise.resolve(body || {}),
+  } as NextRequest
+
+  // Mock headers.get method
+  request.headers.get = jest.fn((name: string) => {
+    const headerMap: Record<string, string> = {
+      'user-agent': 'jest-test-runner',
+      'content-type': 'application/json',
+      'x-forwarded-for': '127.0.0.1',
+      'origin': 'http://localhost:3000'
+    }
+    return headerMap[name.toLowerCase()] || null
+  })
+
+  return request
+}
 
 // Mock Prisma
 jest.mock('@/lib/prisma-singleton', () => ({

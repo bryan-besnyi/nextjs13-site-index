@@ -65,6 +65,7 @@ export default function SearchFilters() {
         </div>
 
         <fieldset className="max-w-3xl mt-4 shadow-sm">
+          <legend className="sr-only">Select campus to filter results</legend>
           <div className="grid grid-cols-4 px-4 py-2 bg-white border border-gray-300 rounded-sm">
             {campusInfo.map((campus) => (
               <div key={campus.id} className="flex items-center">

@@ -178,18 +178,26 @@ export default function ImportExportClient() {
         return;
       }
 
-      // Simulate import process
+      // Import process - create each item using the API
       let imported = 0;
       const errors: string[] = [];
       const warnings: string[] = [];
 
       for (let i = 0; i < data.length; i++) {
         try {
-          // Here you would call your actual import API
-          // await createIndexItem(data[i]);
-          
-          // Simulate processing delay
-          await new Promise(resolve => setTimeout(resolve, 100));
+          const response = await fetch('/api/indexItems', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data[i])
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Import failed');
+          }
+
           imported++;
         } catch (error) {
           errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Import failed'}`);
@@ -235,7 +243,7 @@ export default function ImportExportClient() {
         throw new Error(data.error || 'Export failed');
       }
 
-      const items = data.results || [];
+      const items = Array.isArray(data) ? data : [];
       const timestamp = new Date().toISOString().split('T')[0];
       let filename = `index-items-export-${timestamp}`;
       let content = '';

@@ -1,19 +1,6 @@
 import { NextRequest } from 'next/server';
-
-// Performance metrics collection
-export interface PerformanceMetrics {
-  timestamp: string;
-  endpoint: string;
-  method: string;
-  responseTime: number;
-  statusCode: number;
-  cacheHit: boolean;
-  dbQueryTime?: number;
-  cacheQueryTime?: number;
-  userAgent?: string;
-  ip?: string;
-  resultCount?: number;
-}
+import { PerformanceMetrics, PerformanceMonitorOptions } from '@/types';
+import PerformanceAlerting from './performance-alerts';
 
 // In-memory metrics store (consider Redis for production)
 const metricsStore: PerformanceMetrics[] = [];
@@ -32,14 +19,9 @@ export class PerformanceMonitor {
     this.req = req;
   }
 
-  recordMetrics(
+  async recordMetrics(
     statusCode: number,
-    options: {
-      cacheHit?: boolean;
-      dbQueryTime?: number;
-      cacheQueryTime?: number;
-      resultCount?: number;
-    } = {}
+    options: PerformanceMonitorOptions = {}
   ) {
     const responseTime = Math.round(performance.now() - this.startTime);
     
@@ -54,7 +36,11 @@ export class PerformanceMonitor {
       cacheQueryTime: options.cacheQueryTime,
       userAgent: this.req.headers.get('user-agent') || undefined,
       ip: this.req.headers.get('x-forwarded-for')?.split(',')[0] || undefined,
-      resultCount: options.resultCount
+      resultCount: options.resultCount,
+      memoryUsage: options.memoryUsage,
+      errorRate: options.errorRate,
+      cacheHitRate: options.cacheHitRate,
+      dbResponseTime: options.dbQueryTime
     };
 
     // Add to store
@@ -68,6 +54,13 @@ export class PerformanceMonitor {
     // Log slow requests
     if (responseTime > 1000) {
       console.warn(`🐌 Slow API request: ${this.method} ${this.endpoint} - ${responseTime}ms`);
+    }
+
+    // Trigger performance alerting
+    try {
+      await PerformanceAlerting.analyzeAndAlert(metrics);
+    } catch (error) {
+      console.error('Performance alerting failed:', error);
     }
 
     return metrics;

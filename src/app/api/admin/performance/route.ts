@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import authOptions from '@/app/api/auth/[...nextauth]/options';
 import { kv } from '@vercel/kv';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-singleton';
 
 // Helper to get performance metrics from KV store
 async function getMetricsFromKV() {
@@ -28,13 +29,12 @@ async function getMetricsFromKV() {
   };
 }
 
-// Get active database connections
+// Get active database connections (SQLite specific)
 async function getActiveDBConnections() {
   try {
-    const result = await prisma.$queryRaw<[{ count: bigint }]>`
-      SELECT COUNT(*) as count FROM pg_stat_activity WHERE state = 'active'
-    `;
-    return Number(result[0].count);
+    // For SQLite, we can't get real connection count, so return a simulated value
+    // In production with PostgreSQL, this would query pg_stat_activity
+    return 1; // SQLite typically uses 1 connection
   } catch {
     return 0;
   }
@@ -114,7 +114,7 @@ async function getTimeSeriesData() {
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

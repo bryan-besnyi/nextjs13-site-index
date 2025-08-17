@@ -1,6 +1,15 @@
 {
   "indexItems": [
     {
+      "id": 2,
+      "title": "EV Charging",
+      "letter": "E",
+      "url": "https://sites.google.com/my.smccd.edu/smcccdsustainability/ev-charging",
+      "campus": "College of San Mateo",
+      "createdAt": "2025-08-09T02:04:52.415Z",
+      "updatedAt": "2025-08-09T02:04:52.415Z"
+    },
+    {
       "id": 3,
       "title": "Construction Notices",
       "letter": "C",
@@ -13717,6 +13726,7 @@
       "updatedAt": "0001-01-01T00:00:00.000Z"
     }
   ],
-  "backupDate": "2025-08-08T19:43:22.397Z",
-  "totalRecords": 1524
+  "backupDate": "2025-08-16T20:29:00.606Z",
+  "totalRecords": 1525,
+  "createdBy": "development-user"
 }

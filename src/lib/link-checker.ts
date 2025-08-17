@@ -1,26 +1,6 @@
 import { prisma } from './prisma-singleton';
 import { kv } from '@vercel/kv';
-
-export interface LinkCheckResult {
-  id: number;
-  url: string;
-  status: 'active' | 'dead' | 'redirect' | 'timeout' | 'error';
-  statusCode?: number;
-  responseTime?: number;
-  redirectUrl?: string;
-  error?: string;
-  lastChecked: Date;
-}
-
-export interface LinkCheckSummary {
-  total: number;
-  active: number;
-  dead: number;
-  redirects: number;
-  timeouts: number;
-  errors: number;
-  lastScanDate?: Date;
-}
+import { LinkCheckResult, LinkCheckSummary, DeadLinkReport } from '@/types';
 
 const LINK_CHECK_PREFIX = 'linkcheck:';
 const BATCH_SIZE = 10; // Check 10 links at a time to avoid overwhelming servers
@@ -242,16 +222,7 @@ export async function checkLinksByFilter(
 /**
  * Get dead links with additional context
  */
-export async function getDeadLinksReport(): Promise<Array<{
-  id: number;
-  title: string;
-  url: string;
-  campus: string;
-  letter: string;
-  status: string;
-  error?: string;
-  lastChecked?: Date;
-}>> {
+export async function getDeadLinksReport(): Promise<DeadLinkReport[]> {
   const { results } = await getCachedLinkCheckResults();
   
   if (!results) {

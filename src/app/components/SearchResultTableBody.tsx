@@ -2,7 +2,7 @@ import Link from 'next/link';
 import DeleteButton from './DeleteButton';
 import { Suspense } from 'react';
 
-const TableContent = ({ searchResults }) => (
+const TableContent = ({ searchResults }: { searchResults: any[] }) => (
   <tbody>
     <Suspense fallback={<div>Loading...</div>}>
       {searchResults.map((item) => (

@@ -1,24 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import authOptions from '../../../auth/[...nextauth]/options';
 import { kv } from '@vercel/kv';
+import { CSRFProtection } from '@/lib/csrf';
+import { CacheInvalidationSchema } from '@/lib/validation-schemas';
+import { validateBody } from '@/lib/validation-middleware';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // CSRF Protection
+    const csrfResult = await CSRFProtection.middleware(request);
+    if (!csrfResult.valid) {
+      return NextResponse.json(
+        { error: csrfResult.error || 'CSRF validation failed' },
+        { 
+          status: 403,
+          headers: { 'X-CSRF-Required': 'true' }
+        }
+      );
+    }
+
+    // Check authentication (bypass in development)
+    if (process.env.NODE_ENV !== 'development') {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     // Additional protection: only allow cache invalidation in development or for specific admin users
     if (process.env.NODE_ENV === 'production') {
       // In production, you might want additional role-based checks
       // For now, we allow all authenticated users but log the action
-      console.log(`Cache invalidation requested by: ${session.user.email}`);
+      const session = await getServerSession(authOptions);
+      console.log(`Cache invalidation requested by: ${session?.user?.email || 'unknown'}`);
     }
 
-    const body = await request.json();
-    const { key, keys, pattern } = body;
+    // Validate request body
+    const bodyValidation = await validateBody(CacheInvalidationSchema)(request);
+    if ('response' in bodyValidation) {
+      return bodyValidation.response;
+    }
+    const { key, keys, pattern } = bodyValidation.data;
 
     // Single key invalidation
     if (key) {

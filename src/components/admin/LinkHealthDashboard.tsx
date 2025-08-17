@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -43,13 +43,11 @@ export default function LinkHealthDashboard() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  useEffect(() => {
-    fetchLinkStatus();
-  }, []);
-
-  const fetchLinkStatus = async () => {
+  const fetchLinkStatus = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/link-check?action=status');
+      const response = await fetch('/api/admin/link-check?action=status', {
+        credentials: 'include'
+      });
       const data = await response.json();
       
       if (data.summary) {
@@ -66,11 +64,17 @@ export default function LinkHealthDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchLinkStatus();
+  }, [fetchLinkStatus]);
 
   const fetchDeadLinks = async () => {
     try {
-      const response = await fetch('/api/admin/link-check?action=dead-links');
+      const response = await fetch('/api/admin/link-check?action=dead-links', {
+        credentials: 'include'
+      });
       const data = await response.json();
       setDeadLinks(data.deadLinks || []);
     } catch (error) {
@@ -83,6 +87,7 @@ export default function LinkHealthDashboard() {
     try {
       const response = await fetch('/api/admin/link-check', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'full-scan' })
       });

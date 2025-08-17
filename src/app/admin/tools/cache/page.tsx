@@ -48,7 +48,9 @@ export default function CachePage() {
 
   const fetchCacheData = async () => {
     try {
-      const response = await fetch('/api/admin/cache');
+      const response = await fetch('/api/admin/cache', {
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error('Failed to fetch cache data');
       
       const data = await response.json();
@@ -81,6 +83,7 @@ export default function CachePage() {
     try {
       const response = await fetch('/api/admin/cache/invalidate', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key })
       });
@@ -106,6 +109,7 @@ export default function CachePage() {
     try {
       const response = await fetch('/api/admin/cache/invalidate', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keys: Array.from(selectedKeys) })
       });
@@ -131,6 +135,7 @@ export default function CachePage() {
     try {
       const response = await fetch('/api/admin/cache/invalidate', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pattern: patternInput })
       });
@@ -185,12 +190,19 @@ export default function CachePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Cache Manager</h1>
           <p className="text-gray-600 mt-1">Manage Vercel KV cache entries and monitor cache performance</p>
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>What is this?</strong> The cache stores API responses to make the site faster. 
+              Cache entries expire automatically (TTL = seconds until expiration, -1 = permanent).
+              You can delete cache entries to force fresh data loading.
+            </p>
+          </div>
         </div>
         <Button onClick={fetchCacheData} variant="outline" size="sm" aria-label="Refresh cache data">
           <RefreshCw className="h-4 w-4" />
@@ -198,7 +210,7 @@ export default function CachePage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Keys</CardTitle>
@@ -206,6 +218,7 @@ export default function CachePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalKeys || 0}</div>
+            <p className="text-xs text-muted-foreground">Cached API responses</p>
           </CardContent>
         </Card>
 
@@ -216,6 +229,7 @@ export default function CachePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.memoryUsage || '0 KB'}</div>
+            <p className="text-xs text-muted-foreground">Storage used by cache</p>
           </CardContent>
         </Card>
 
@@ -228,6 +242,7 @@ export default function CachePage() {
             <div className="text-2xl font-bold">
               {((stats?.hitRate || 0) * 100).toFixed(0)}%
             </div>
+            <p className="text-xs text-muted-foreground">Requests served from cache</p>
           </CardContent>
         </Card>
 
@@ -240,6 +255,7 @@ export default function CachePage() {
             <div className="text-2xl font-bold">
               {((stats?.missRate || 0) * 100).toFixed(0)}%
             </div>
+            <p className="text-xs text-muted-foreground">Requests needing fresh data</p>
           </CardContent>
         </Card>
 
@@ -250,9 +266,42 @@ export default function CachePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.evictions || 0}</div>
+            <p className="text-xs text-muted-foreground">Items removed due to limits</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Cache Entries Help */}
+      <Card className="bg-gray-50 border-gray-200">
+        <CardContent className="pt-6">
+          <div className="grid md:grid-cols-3 gap-6 text-sm">
+            <div>
+              <h4 className="font-semibold mb-2">Understanding Cache Entries:</h4>
+              <ul className="space-y-1 text-gray-600">
+                <li><strong>Key:</strong> Unique identifier for cached data</li>
+                <li><strong>Size:</strong> Memory used by this entry</li>
+                <li><strong>TTL:</strong> Seconds until expiration (-1 = never expires)</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Common Cache Types:</h4>
+              <ul className="space-y-1 text-gray-600">
+                <li><strong>index:*</strong> Search results by campus/letter</li>
+                <li><strong>api:*</strong> API response caching</li>
+                <li><strong>alerts:*</strong> Performance monitoring data</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">What do the actions do?</h4>
+              <ul className="space-y-1 text-gray-600">
+                <li><strong>🗑️ Individual Delete:</strong> Removes one cache entry</li>
+                <li><strong>Bulk Delete:</strong> Removes selected entries</li>
+                <li><strong>Pattern Delete:</strong> Removes entries matching a pattern (e.g., api:*)</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Cache Entries Table */}
       <Card>

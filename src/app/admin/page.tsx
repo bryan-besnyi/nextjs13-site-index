@@ -112,7 +112,7 @@ export default async function AdminDashboardPage() {
   const successfulRequests = Math.round(totalAPIRequests * (1 - errorRate / 100));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 lg:space-y-12">
       {/* Page Header with gradient background */}
       <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white shadow-xl">
         <div className="relative z-10">
@@ -136,7 +136,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
         <MetricsCard
           title="Total Index Items"
           value={metrics.totalItems.toLocaleString()}
@@ -173,7 +173,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Quick Actions and Campus Distribution */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-2">
         {/* Quick Actions */}
         <QuickActions />
 
@@ -222,7 +222,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Recent Activity & System Status */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-8 lg:grid-cols-2">
         <Card className="relative overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

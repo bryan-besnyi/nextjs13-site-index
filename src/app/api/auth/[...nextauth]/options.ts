@@ -41,11 +41,14 @@ const authOptions: AuthOptions = {
     async session({ session, token }) {
       // Check if token has expired
       if (token.exp && Date.now() / 1000 > Number(token.exp)) {
-        return null; // Force re-authentication
+        // Return empty session object instead of null to satisfy TypeScript
+        return { ...session, user: { ...session.user, name: null, email: null } };
       }
       
-      session.user.name = token.name;
-      session.user.email = token.email;
+      if (session.user) {
+        session.user.name = token.name;
+        session.user.email = token.email;
+      }
       // Only log in development
       if (process.env.NODE_ENV === 'development') {
         console.log('Session callback - session:', session);

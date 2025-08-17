@@ -70,8 +70,12 @@ export default function SystemSettingsPage() {
     try {
       setLoading(true);
       const [settingsRes, envRes] = await Promise.all([
-        fetch('/api/admin/system/settings'),
-        fetch('/api/admin/system/environment')
+        fetch('/api/admin/system/settings', {
+          credentials: 'include'
+        }),
+        fetch('/api/admin/system/environment', {
+          credentials: 'include'
+        })
       ]);
 
       if (!settingsRes.ok || !envRes.ok) {
@@ -103,6 +107,7 @@ export default function SystemSettingsPage() {
       setSaving(true);
       const response = await fetch('/api/admin/system/settings', {
         method: 'PUT',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

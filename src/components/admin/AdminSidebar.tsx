@@ -21,7 +21,8 @@ import {
   Shield,
   Terminal,
   Gauge,
-  HardDrive
+  HardDrive,
+  Bell
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -82,6 +83,11 @@ const sidebarItems: SidebarItem[] = [
         href: "/admin/tools/cache",
         icon: HardDrive
       },
+      { 
+        title: "Alerts", 
+        href: "/admin/tools/alerts",
+        icon: Bell
+      },
     ],
   },
   {
@@ -110,6 +116,11 @@ const sidebarItems: SidebarItem[] = [
         icon: Activity
       },
       { 
+        title: "Activity Trail", 
+        href: "/admin/system/activity",
+        icon: Shield
+      },
+      { 
         title: "Backups", 
         href: "/admin/system/backups",
         icon: Archive
@@ -117,7 +128,7 @@ const sidebarItems: SidebarItem[] = [
       { 
         title: "Settings", 
         href: "/admin/system/settings",
-        icon: Shield
+        icon: Settings
       },
     ],
   },
@@ -219,7 +230,7 @@ export default function AdminSidebar() {
                     role="group"
                     aria-labelledby={`section-${item.title.replace(/\s+/g, '-').toLowerCase()}`}
                   >
-                    {item.items.map((subItem) => {
+                    {item.items?.map((subItem) => {
                       const SubIcon = subItem.icon;
                       return (
                         <li key={subItem.href}>

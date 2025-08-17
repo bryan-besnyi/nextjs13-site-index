@@ -244,3 +244,26 @@ enum UserRole {
   ADMIN
   STAFF
 }
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  userEmail   String?
+  action      String
+  resource    String?
+  resourceId  String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  method      String?
+  path        String?
+  statusCode  Int?
+  duration    Int?
+  timestamp   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([timestamp])
+  @@index([userEmail])
+}

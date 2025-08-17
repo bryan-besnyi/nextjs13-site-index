@@ -1,6 +1,7 @@
 import 'jest-axe/extend-expect';
 
 // Optional: Configure axe for testing
+// @ts-ignore - jest-axe types not available
 import { configureAxe } from 'jest-axe';
 
 const axe = configureAxe({

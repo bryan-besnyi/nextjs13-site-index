@@ -5,6 +5,16 @@ import { prisma } from '@/lib/prisma-singleton';
 import { PerformanceMonitor, timeDbQuery, timeCacheOperation } from '@/lib/performance-monitor';
 import { PerformanceCollector } from '@/lib/performance-collector';
 import * as CachedIndexItems from '@/lib/indexItems-cached';
+import { PerformanceOptimizer, QueryOptimizer, PERFORMANCE_TARGETS } from '@/lib/performance-optimizations';
+import { CSRFProtection } from '@/lib/csrf';
+import { 
+  CreateIndexItemSchema, 
+  UpdateIndexItemSchema, 
+  IndexItemQuerySchema, 
+  IdQuerySchema 
+} from '@/lib/validation-schemas';
+import { validateQuery, validateBody, validateUserAgent } from '@/lib/validation-middleware';
+import { ActivityLogger } from '@/lib/activity-logger';
 
 // Optimized caching strategy
 const CACHE_TTL = 4 * 60 * 60; // 4 hours (more aggressive caching)
@@ -26,14 +36,36 @@ const CAMPUS_MAP: Record<string, string> = {
   'DISTRICT': 'District Office'
 };
 
-// Optimized User-Agent validation
-const BLOCKED_PATTERNS = ['bot/', 'crawler/', 'scrapy', 'spider'];
-const isValidUserAgent = (ua: string): boolean => {
-  if (!ua || ua.length < 5) return false;
-  const lower = ua.toLowerCase();
-  return !BLOCKED_PATTERNS.some(pattern => lower.includes(pattern)) ||
-         lower.includes('fetch') || lower.includes('mozilla');
+// Allowed CORS origins for production security
+const ALLOWED_ORIGINS = [
+  'https://collegeofsanmateo.edu',
+  'https://canadacollege.edu', 
+  'https://skylinecollege.edu',
+  'https://site-index.smccd.edu', // Current production site
+  ...(process.env.NODE_ENV === 'development' ? [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000'
+  ] : [])
+];
+
+// CORS header helper
+const getCORSHeaders = (origin: string | null): Record<string, string> => {
+  // Check if origin is allowed
+  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => 
+    origin.startsWith(allowed) || origin === allowed
+  );
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : 'null',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token',
+    'Access-Control-Allow-Credentials': 'true',
+    'Vary': 'Origin'
+  };
 };
+
+// User-Agent validation is now handled by validation middleware
 
 export async function GET(req: NextRequest) {
   const perfMonitor = new PerformanceMonitor(req);
@@ -42,11 +74,28 @@ export async function GET(req: NextRequest) {
   let cacheHit = false;
   
   try {
-    // Quick validation
-    const userAgent = req.headers.get('user-agent') || '';
-    if (!isValidUserAgent(userAgent)) {
-      return NextResponse.json({ error: 'Invalid User-Agent' }, { status: 403 });
+    // Get origin for CORS
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCORSHeaders(origin);
+
+    // Validate User-Agent
+    const userAgentResult = validateUserAgent(req);
+    if (!userAgentResult.valid) {
+      return NextResponse.json(
+        { error: 'Invalid User-Agent', timestamp: new Date().toISOString() }, 
+        { 
+          status: 403,
+          headers: corsHeaders
+        }
+      );
     }
+
+    // Validate query parameters
+    const queryValidation = validateQuery(IndexItemQuerySchema)(req);
+    if ('response' in queryValidation) {
+      return queryValidation.response;
+    }
+    const { campus, letter, search } = queryValidation.data;
 
     // Rate limiting with better IP detection
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 
@@ -60,6 +109,7 @@ export async function GET(req: NextRequest) {
         { 
           status: 429,
           headers: { 
+            ...corsHeaders,
             'X-RateLimit-Limit': limit.toString(),
             'X-RateLimit-Remaining': '0',
             'Retry-After': '60'
@@ -68,22 +118,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Parse and normalize parameters
-    const params = req.nextUrl.searchParams;
-    let campus = params.get('campus') || '';
-    const letter = params.get('letter') || '';
-    const search = params.get('search') || '';
-
-    // Normalize campus codes
-    if (campus && CAMPUS_MAP[campus.toUpperCase()]) {
-      campus = CAMPUS_MAP[campus.toUpperCase()];
-    }
+    // Parameters are now validated and normalized by the validation middleware
 
     // Optimized cache key
     const cacheKey = `${CACHE_PREFIX}${campus}:${letter}:${search}`;
     
     // Try cache first with timing
-    let indexItems;
+    let indexItems: any;
     try {
       const { result: cached, cacheTime } = await timeCacheOperation(
         () => kv.get(cacheKey),
@@ -93,16 +134,32 @@ export async function GET(req: NextRequest) {
       
       if (cached) {
         cacheHit = true;
-        const metrics = perfMonitor.recordMetrics(200, {
+        const metrics = await perfMonitor.recordMetrics(200, {
           cacheHit: true,
           cacheQueryTime,
           resultCount: Array.isArray(cached) ? cached.length : 0
         });
         
+        // Log activity for cache hit
+        await ActivityLogger.logApiRequest({
+          request: req,
+          action: 'VIEW_ITEMS',
+          resource: 'indexItems',
+          statusCode: 200,
+          duration: metrics.responseTime,
+          details: {
+            campus,
+            letter,
+            search,
+            resultCount: Array.isArray(cached) ? cached.length : 0,
+            cacheHit: true
+          }
+        });
+        
         return NextResponse.json(cached, {
           headers: {
+            ...corsHeaders,
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
             'Cache-Control': 'public, max-age=14400, s-maxage=14400',
             'X-Cache': 'HIT',
             'X-Response-Time': `${metrics.responseTime}ms`,
@@ -115,38 +172,25 @@ export async function GET(req: NextRequest) {
       console.warn('Cache read failed:', cacheError);
     }
 
-    // Optimized database query
-    const whereConditions: any = {};
-    if (campus) whereConditions.campus = campus;
-    if (letter) whereConditions.letter = { contains: letter, mode: 'insensitive' };
-    if (search) {
-      whereConditions.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { url: { contains: search, mode: 'insensitive' } }
-      ];
-    }
-
-    // Database query with timing
-    const { result, queryTime } = await timeDbQuery(
-      () => prisma.indexitem.findMany({
-        where: whereConditions,
-        orderBy: [
-          { title: 'asc' }
-        ],
-        // Only select needed fields to reduce payload
-        select: {
-          id: true,
-          title: true,
-          letter: true,
-          url: true,
-          campus: true
-        }
+    // Optimized database query using performance optimizations
+    const startTime = performance.now();
+    
+    // Use optimized query with multi-level caching
+    indexItems = await PerformanceOptimizer.getWithCache(
+      cacheKey,
+      () => QueryOptimizer.getIndexItems({
+        campus,
+        letter,
+        search
       }),
-      'indexItems-query'
+      {
+        priority: campus ? 'hot' : 'warm', // Campus queries are typically more popular
+        redisTtl: CACHE_TTL,
+        memoryTtl: 5 * 60 * 1000 // 5 minutes in memory for ultra-fast repeat requests
+      }
     );
     
-    indexItems = result;
-    dbQueryTime = queryTime;
+    dbQueryTime = performance.now() - startTime;
 
     // Cache the results asynchronously (don't wait)
     timeCacheOperation(
@@ -155,19 +199,38 @@ export async function GET(req: NextRequest) {
     ).catch(err => console.warn('Cache write failed:', err));
 
     // Record final metrics
-    const metrics = perfMonitor.recordMetrics(200, {
+    const metrics = await perfMonitor.recordMetrics(200, {
       cacheHit: false,
       dbQueryTime,
       cacheQueryTime,
       resultCount: indexItems.length
     });
     
+    // Performance alerting
+    if (metrics.responseTime > PERFORMANCE_TARGETS.API_RESPONSE_TIME) {
+      console.warn(`⚠️ Performance target missed: ${metrics.responseTime}ms > ${PERFORMANCE_TARGETS.API_RESPONSE_TIME}ms target`);
+    }
+    
+    // Log activity
+    await ActivityLogger.logApiRequest({
+      request: req,
+      action: 'VIEW_ITEMS',
+      resource: 'indexItems',
+      statusCode: 200,
+      duration: metrics.responseTime,
+      details: {
+        campus,
+        letter,
+        search,
+        resultCount: indexItems.length,
+        cacheHit: false
+      }
+    });
+    
     return NextResponse.json(indexItems, {
       headers: {
+        ...corsHeaders,
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Cache-Control': 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400',
         'X-Cache': 'MISS',
         'X-Response-Time': `${metrics.responseTime}ms`,
@@ -181,6 +244,9 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('API Error:', error);
     
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCORSHeaders(origin);
+    
     return NextResponse.json(
       { 
         error: 'Internal server error',
@@ -188,7 +254,10 @@ export async function GET(req: NextRequest) {
       },
       { 
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        }
       }
     );
   }
@@ -197,25 +266,43 @@ export async function GET(req: NextRequest) {
 // Optimized POST with better cache invalidation
 export async function POST(req: NextRequest) {
   try {
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCORSHeaders(origin);
+
+    // CSRF Protection
+    const csrfResult = await CSRFProtection.middleware(req);
+    if (!csrfResult.valid) {
+      return NextResponse.json(
+        { error: csrfResult.error || 'CSRF validation failed' },
+        { 
+          status: 403,
+          headers: { 
+            ...corsHeaders,
+            'X-CSRF-Required': 'true' 
+          }
+        }
+      );
+    }
+
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
     const { success } = await ratelimit.limit(ip);
 
     if (!success) {
       return NextResponse.json(
         { error: 'Rate limit exceeded' },
-        { status: 429 }
+        { 
+          status: 429,
+          headers: corsHeaders
+        }
       );
     }
 
-    const { title, letter, url, campus } = await req.json();
-
-    // Input validation
-    if (!title || !letter || !url || !campus) {
-      return NextResponse.json(
-        { error: 'Missing required fields: title, letter, url, campus' },
-        { status: 400 }
-      );
+    // Validate request body
+    const bodyValidation = await validateBody(CreateIndexItemSchema)(req);
+    if ('response' in bodyValidation) {
+      return bodyValidation.response;
     }
+    const { title, letter, url, campus } = bodyValidation.data;
 
     const newItem = await prisma.indexitem.create({
       data: { title, letter, url, campus },
@@ -243,14 +330,23 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(newItem, {
       status: 201,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        ...corsHeaders,
+        'Content-Type': 'application/json' 
+      }
     });
 
   } catch (error) {
     console.error('POST Error:', error);
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCORSHeaders(origin);
+    
     return NextResponse.json(
       { error: 'Error creating item' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: corsHeaders
+      }
     );
   }
 }
@@ -258,20 +354,62 @@ export async function POST(req: NextRequest) {
 // Optimized DELETE
 export async function DELETE(req: NextRequest) {
   try {
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCORSHeaders(origin);
+
+    // CSRF Protection
+    const csrfResult = await CSRFProtection.middleware(req);
+    if (!csrfResult.valid) {
+      return NextResponse.json(
+        { error: csrfResult.error || 'CSRF validation failed' },
+        { 
+          status: 403,
+          headers: { 
+            ...corsHeaders,
+            'X-CSRF-Required': 'true' 
+          }
+        }
+      );
+    }
+
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
     const { success } = await ratelimit.limit(ip);
 
     if (!success) {
-      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+      return NextResponse.json(
+        { error: 'Rate limit exceeded' }, 
+        { 
+          status: 429,
+          headers: corsHeaders
+        }
+      );
     }
 
-    const id = req.nextUrl.searchParams.get('id');
-    if (!id) {
-      return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    // Validate ID parameter
+    const idParam = req.nextUrl.searchParams.get('id');
+    if (!idParam) {
+      return NextResponse.json(
+        { error: 'ID parameter is required', timestamp: new Date().toISOString() }, 
+        { 
+          status: 400,
+          headers: corsHeaders
+        }
+      );
+    }
+    
+    const id = parseInt(idParam, 10);
+    if (isNaN(id) || id <= 0) {
+      return NextResponse.json(
+        { error: 'ID must be a positive number', timestamp: new Date().toISOString() }, 
+        { 
+          status: 400,
+          headers: corsHeaders
+        }
+      );
     }
 
     const deletedItem = await prisma.indexitem.delete({
-      where: { id: Number(id) }
+      where: { id }
     });
 
     // Clear all related cache patterns
@@ -300,10 +438,31 @@ export async function DELETE(req: NextRequest) {
 // UPDATE/PATCH endpoint for modifying existing items
 export async function PATCH(req: NextRequest) {
   try {
-    // User-Agent validation
-    const userAgent = req.headers.get('user-agent') || '';
-    if (!isValidUserAgent(userAgent)) {
-      return NextResponse.json({ error: 'Invalid User-Agent' }, { status: 403 });
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCORSHeaders(origin);
+
+    // CSRF Protection
+    const csrfResult = await CSRFProtection.middleware(req);
+    if (!csrfResult.valid) {
+      return NextResponse.json(
+        { error: csrfResult.error || 'CSRF validation failed' },
+        { 
+          status: 403,
+          headers: { 'X-CSRF-Required': 'true' }
+        }
+      );
+    }
+
+    // Validate User-Agent
+    const userAgentResult = validateUserAgent(req);
+    if (!userAgentResult.valid) {
+      return NextResponse.json(
+        { error: 'Invalid User-Agent', timestamp: new Date().toISOString() }, 
+        { 
+          status: 403,
+          headers: corsHeaders
+        }
+      );
     }
 
     // Rate limiting
@@ -313,73 +472,63 @@ export async function PATCH(req: NextRequest) {
     if (!success) {
       return NextResponse.json(
         { error: 'Rate limit exceeded' },
-        { status: 429 }
+        { 
+          status: 429,
+          headers: corsHeaders
+        }
       );
     }
 
-    // Get ID from query params
-    const id = req.nextUrl.searchParams.get('id');
-    if (!id || isNaN(Number(id))) {
+    // Validate ID parameter
+    const idParam = req.nextUrl.searchParams.get('id');
+    if (!idParam) {
       return NextResponse.json(
-        { error: 'Valid ID required' },
-        { status: 400 }
+        { error: 'ID parameter is required', timestamp: new Date().toISOString() }, 
+        { 
+          status: 400,
+          headers: corsHeaders
+        }
       );
     }
-
-    // Parse request body
-    const body = await req.json();
-    const { title, letter, url, campus } = body;
-
-    // Validate at least one field is being updated
-    if (!title && !letter && !url && !campus) {
+    
+    const id = parseInt(idParam, 10);
+    if (isNaN(id) || id <= 0) {
       return NextResponse.json(
-        { error: 'At least one field must be provided for update' },
-        { status: 400 }
+        { error: 'ID must be a positive number', timestamp: new Date().toISOString() }, 
+        { 
+          status: 400,
+          headers: corsHeaders
+        }
       );
     }
 
-    // Build update data object
-    const updateData: any = {};
-    if (title !== undefined) updateData.title = title;
-    if (letter !== undefined) updateData.letter = letter;
-    if (url !== undefined) updateData.url = url;
-    if (campus !== undefined) updateData.campus = campus;
-
-    // Validate URL if provided
-    if (url) {
-      try {
-        new URL(url);
-      } catch {
-        return NextResponse.json(
-          { error: 'Invalid URL format' },
-          { status: 400 }
-        );
-      }
+    // Validate request body
+    const bodyValidation = await validateBody(UpdateIndexItemSchema)(req);
+    if ('response' in bodyValidation) {
+      return bodyValidation.response;
     }
+    const updateData = bodyValidation.data;
 
-    // Validate letter if provided
-    if (letter && letter.length !== 1) {
-      return NextResponse.json(
-        { error: 'Letter must be a single character' },
-        { status: 400 }
-      );
-    }
+    // updateData is already validated by the schema
 
     // Get the current item for cache invalidation
     const currentItem = await prisma.indexitem.findUnique({
-      where: { id: Number(id) }
+      where: { id }
     });
 
     if (!currentItem) {
       return NextResponse.json(
         { error: 'Item not found' },
-        { status: 404 }
+        { 
+          status: 404,
+          headers: corsHeaders
+        }
       );
     }
 
     // Update the item
     const updatedItem = await prisma.indexitem.update({
-      where: { id: Number(id) },
+      where: { id },
       data: updateData,
       select: {
         id: true,
@@ -410,14 +559,23 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json(updatedItem, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        ...corsHeaders,
+        'Content-Type': 'application/json' 
+      }
     });
 
   } catch (error) {
     console.error('PATCH Error:', error);
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCORSHeaders(origin);
+    
     return NextResponse.json(
       { error: 'Error updating item' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: corsHeaders
+      }
     );
   }
 }
@@ -425,4 +583,18 @@ export async function PATCH(req: NextRequest) {
 // Support PUT as an alias for PATCH
 export async function PUT(req: NextRequest) {
   return PATCH(req);
+}
+
+// Handle CORS preflight requests
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCORSHeaders(origin);
+  
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      'Access-Control-Max-Age': '86400' // Cache preflight for 24 hours
+    }
+  });
 }

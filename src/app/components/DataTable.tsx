@@ -59,7 +59,7 @@ export default function DataTable({ initialData }: DataTableProps) {
   }, [sortConfig, sortArray]);
 
   const requestSort = useCallback(
-    (key: keyof SearchResultType) => {
+    (key: string) => {
       let direction = 'asc';
       if (sortConfig.key === key && sortConfig.direction === 'asc') {
         direction = 'desc';
@@ -80,7 +80,7 @@ export default function DataTable({ initialData }: DataTableProps) {
   );
 
   const rowRenderer = useCallback(
-    ({ index, style }) => {
+    ({ index, style }: { index: number; style: any }) => {
       const item = searchResults[index];
       return <TableRow key={item.id} item={item} style={style} />;
     },
@@ -99,19 +99,29 @@ export default function DataTable({ initialData }: DataTableProps) {
 
   return (
     <ScrollArea className={`mx-5 mt-5 border rounded-md bg-white h-[calc(100vh-375px)]`}>
-      <div className="min-w-full divide-y divide-gray-300">
-        <TableHeader
-          requestSort={requestSort}
-          getClassNamesFor={getClassNamesFor}
-        />
-        <List
-          height={tableHeight}
-          itemCount={searchResults.length}
-          itemSize={50}
-          width="100%"
-        >
-          {rowRenderer}
-        </List>
+      <div 
+        className="min-w-full divide-y divide-gray-300" 
+        role="table" 
+        aria-label={`Index items table with ${searchResults.length} results`}
+        aria-rowcount={searchResults.length + 1}
+      >
+        <div role="rowgroup">
+          <TableHeader
+            requestSort={requestSort}
+            getClassNamesFor={getClassNamesFor}
+          />
+        </div>
+        <div role="rowgroup">
+          <List
+            height={tableHeight}
+            itemCount={searchResults.length}
+            itemSize={50}
+            width="100%"
+            aria-label="Table body with index items"
+          >
+            {rowRenderer}
+          </List>
+        </div>
       </div>
       <ScrollBar orientation="vertical" />
     </ScrollArea>
