@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-singleton';
 import { kv } from '@vercel/kv';
+import { QueryCache } from '@/lib/query-cache';
 
 // Health check types based on RFC draft-inadarei-api-health-check-06
 type HealthStatus = 'pass' | 'fail' | 'warn';
@@ -60,11 +61,12 @@ export async function GET(req: NextRequest) {
     try {
       const dbStartTime = performance.now();
       
-      // Test basic connectivity
+      // Test basic connectivity first (fastest check)
       await prisma.$queryRaw`SELECT 1 as test`;
       
-      // Test table accessibility and get record count
-      const recordCount = await prisma.indexitem.count();
+      // Use optimized cached count query
+      const recordCount = await QueryCache.getHealthCheckCount();
+      
       const dbResponseTime = Math.round(performance.now() - dbStartTime);
 
       checks.database = [{

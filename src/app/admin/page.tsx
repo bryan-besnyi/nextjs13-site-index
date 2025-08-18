@@ -16,34 +16,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PerformanceMonitor } from '@/lib/performance-monitor';
+import { QueryCache } from '@/lib/query-cache';
 import ErrorActions from '@/components/admin/ErrorActions';
 import QuickActions from '@/components/admin/QuickActions';
 
 async function getDashboardMetrics() {
   try {
-    // Get total items count
-    const totalItems = await prisma.indexitem.count();
-    
-    // Get items by campus - using aggregation instead of groupBy to avoid type issues
-    const campuses = ['Cañada College', 'College of San Mateo', 'Skyline College', 'District Office'];
-    const itemsByCampus = await Promise.all(
-      campuses.map(async (campus) => ({
-        campus,
-        _count: await prisma.indexitem.count({ where: { campus } })
-      }))
-    );
-    
-    // Get recent items (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const recentItems = await prisma.indexitem.count({
-      where: {
-        createdAt: {
-          gte: sevenDaysAgo
-        }
-      }
-    });
+    // Use optimized cached dashboard stats
+    const cachedStats = await QueryCache.getDashboardStats();
     
     // Get real cache stats from Redis
     const cacheStatsResult = await getCacheStats();
@@ -57,9 +37,12 @@ async function getDashboardMetrics() {
     const performanceMetrics = PerformanceMonitor.getAnalytics();
     
     return {
-      totalItems,
-      itemsByCampus,
-      recentItems,
+      totalItems: cachedStats.totalItems,
+      itemsByCampus: cachedStats.campusCounts.map((item) => ({
+        campus: item.campus,
+        _count: item._count.campus
+      })),
+      recentItems: cachedStats.recentItems,
       cacheStats,
       performanceMetrics
     };

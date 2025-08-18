@@ -85,9 +85,9 @@ export async function POST(req: NextRequest) {
         // Simulate various operations
         const dbTest = await PerformanceCollector.measureDbOperation(
           async () => {
-            // Simple count query
-            const { prisma } = await import('@/lib/prisma-singleton');
-            return await prisma.indexitem.count();
+            // Use optimized cached count query
+            const { QueryCache } = await import('@/lib/query-cache');
+            return await QueryCache.getHealthCheckCount();
           },
           'benchmark-count'
         );

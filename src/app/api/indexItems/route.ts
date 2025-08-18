@@ -7,6 +7,7 @@ import { PerformanceCollector } from '@/lib/performance-collector';
 import * as CachedIndexItems from '@/lib/indexItems-cached';
 import { PerformanceOptimizer, QueryOptimizer, PERFORMANCE_TARGETS } from '@/lib/performance-optimizations';
 import { CSRFProtection } from '@/lib/csrf';
+import { QueryCache } from '@/lib/query-cache';
 import { 
   CreateIndexItemSchema, 
   UpdateIndexItemSchema, 
@@ -347,6 +348,9 @@ export async function POST(req: NextRequest) {
       kv.del(pattern).catch(err => console.warn('Cache invalidation failed:', err));
     });
 
+    // Invalidate count caches since we added an item
+    QueryCache.invalidateCountCaches().catch(err => console.warn('Count cache invalidation failed:', err));
+
     return NextResponse.json(newItem, {
       status: 201,
       headers: { 
@@ -442,6 +446,9 @@ export async function DELETE(req: NextRequest) {
     patterns.forEach(pattern => {
       kv.del(pattern).catch(err => console.warn('Cache invalidation failed:', err));
     });
+
+    // Invalidate count caches since we deleted an item
+    QueryCache.invalidateCountCaches().catch(err => console.warn('Count cache invalidation failed:', err));
 
     return new NextResponse(null, { status: 204 });
 
