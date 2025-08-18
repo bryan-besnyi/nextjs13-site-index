@@ -18,8 +18,11 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession();
   
-  // Authentication check
-  if (!session?.user?.email && process.env.NODE_ENV === 'production') {
+  // Check if we're in preview/development mode
+  const isPreviewMode = process.env.VERCEL_ENV === 'preview' || process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV === 'development';
+  
+  // Authentication check - only enforce in production
+  if (!session?.user?.email && process.env.NODE_ENV === 'production' && !isPreviewMode) {
     redirect('/');
   }
   

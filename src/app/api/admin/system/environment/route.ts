@@ -6,10 +6,15 @@ import os from 'os';
 // Get environment information
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Check if we're in preview/development mode
+    const isPreviewMode = process.env.VERCEL_ENV === 'preview' || process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV === 'development';
+    
+    // Check authentication only in production
+    if (!isPreviewMode) {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     // Calculate uptime
@@ -46,6 +51,9 @@ export async function GET(request: NextRequest) {
       databaseUrl: process.env.DATABASE_URL || 'Not configured',
       deploymentUrl: process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000',
       environment: process.env.NODE_ENV || 'development',
+      vercelEnv: process.env.VERCEL_ENV || 'Not set',
+      bypassAuth: process.env.BYPASS_AUTH || 'Not set',
+      isPreviewMode: isPreviewMode,
       lastRestart: new Date(Date.now() - (uptimeSeconds * 1000)).toISOString(),
       uptime: uptimeString,
       memoryUsage: {

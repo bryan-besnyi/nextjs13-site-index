@@ -12,6 +12,7 @@ export default function SignInPage() {
   // Auto-redirect in preview/development environments
   if (isPreviewMode) {
     redirect('/admin');
+    return null; // This won't be reached but helps with TypeScript
   }
   
   return (
