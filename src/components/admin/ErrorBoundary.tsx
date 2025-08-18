@@ -124,7 +124,7 @@ class ErrorBoundary extends React.Component<
                 <p className="text-xs text-gray-500">
                   If this problem persists, please{' '}
                   <a 
-                    href="mailto:webservices@smccd.edu?subject=Admin Dashboard Error"
+                    href="mailto:webmaster@smccd.edu?subject=Admin Dashboard Error"
                     className="text-blue-600 hover:text-blue-800 underline"
                   >
                     contact Web Services

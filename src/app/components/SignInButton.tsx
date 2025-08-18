@@ -127,7 +127,7 @@ const OneLoginSignInButton = () => {
         <p className="text-xs" style={{ color: '#6B7280' }}>
           Having trouble signing in?{' '}
           <a 
-            href="mailto:webservices@smccd.edu" 
+            href="mailto:webmaster@smccd.edu" 
             className="underline"
             style={{ color: '#2563EB' }}
             onMouseEnter={(e) => e.currentTarget.style.color = '#1D4ED8'}

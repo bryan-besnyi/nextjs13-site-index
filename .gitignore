@@ -7,6 +7,10 @@
 
 # testing
 /coverage
+__tests__/
+cypress/videos/
+cypress/screenshots/
+.nyc_output
 
 # next.js
 /.next/
@@ -35,5 +39,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-
+# Database
 dev.db*
+*.db
+
+# Development files - EXCLUDE FROM PRODUCTION
+/docs/
+*.md
+!README.md
+/backups/
+/scripts/
+test-api*.sh
+coverage/
+cypress/videos/
+cypress/screenshots/
+link-check-*.json
+production-backup.json
+backup-viewer.html

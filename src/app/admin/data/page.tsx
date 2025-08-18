@@ -67,7 +67,7 @@ export default async function AdminDataPage({
             <p className="text-xs text-red-500 pt-2 border-t border-red-200">
               If this persists, contact{' '}
               <a 
-                href="mailto:webservices@smccd.edu"
+                href="mailto:webmaster@smccd.edu"
                 className="text-red-600 hover:underline font-medium"
               >
                 Web Services

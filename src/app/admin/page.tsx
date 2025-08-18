@@ -117,7 +117,7 @@ export default async function AdminDashboardPage() {
             <p className="text-xs text-muted-foreground pt-2 border-t">
               If this persists, contact{' '}
               <a 
-                href="mailto:webservices@smccd.edu"
+                href="mailto:webmaster@smccd.edu"
                 className="text-blue-600 hover:underline"
               >
                 Web Services

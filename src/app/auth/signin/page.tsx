@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import OneLoginSignInButton from '../../components/SignInButton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Shield, Building2, Users } from 'lucide-react';
@@ -6,7 +7,12 @@ import './signin.css';
 
 export default function SignInPage() {
   // Check if we're in preview mode
-  const isPreviewMode = process.env.VERCEL_ENV === 'preview' || process.env.BYPASS_AUTH === 'true';
+  const isPreviewMode = process.env.VERCEL_ENV === 'preview' || process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV === 'development';
+  
+  // Auto-redirect in preview/development environments
+  if (isPreviewMode) {
+    redirect('/admin');
+  }
   
   return (
     <>
@@ -87,7 +93,7 @@ export default function SignInPage() {
           <p className="text-sm" style={{ color: '#6B7280' }}>
             Need help accessing your account?{' '}
             <a 
-              href="mailto:webservices@smccd.edu" 
+              href="mailto:webmaster@smccd.edu" 
               className="text-primary hover:text-primary/80 font-medium underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
             >
               Contact Web Services

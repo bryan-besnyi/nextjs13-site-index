@@ -58,10 +58,20 @@ const Footer = () => {
             <p>San Mateo, CA 94402</p>
             <p>
               <a 
-                href="mailto:webservices@smccd.edu" 
+                href="mailto:webmaster@smccd.edu" 
                 className="hover:text-white hover:underline transition-colors"
               >
-                webservices@smccd.edu
+                webmaster@smccd.edu
+              </a>
+            </p>
+            <p>
+              <a 
+                href="https://support.smccd.edu" 
+                className="hover:text-white hover:underline transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Support Portal
               </a>
             </p>
           </div>

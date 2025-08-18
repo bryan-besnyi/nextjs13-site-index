@@ -1,7 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import { AccessibilityProvider, AccessibilityDebugPanel, FocusIndicator } from '@/components/accessibility/AccessibilityProvider';
+import { AccessibilityProvider, FocusIndicator } from '@/components/accessibility/AccessibilityProvider';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -9,7 +9,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <AccessibilityProvider>
         <FocusIndicator />
         {children}
-        <AccessibilityDebugPanel />
       </AccessibilityProvider>
     </SessionProvider>
   );
