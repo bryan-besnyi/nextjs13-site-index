@@ -50,9 +50,11 @@ const OneLoginSignInButton = () => {
       const credentials = isPreviewMode ? { email: 'preview@test.com' } : undefined;
       
       const result = await signIn(provider, {
-        callbackUrl: process.env.NODE_ENV === 'production'
-          ? 'https://site-index.smccd.edu/admin'
-          : 'http://localhost:3000/admin',
+        callbackUrl: process.env.NEXTAUTH_URL 
+          ? `${process.env.NEXTAUTH_URL}/admin`
+          : (process.env.NODE_ENV === 'production'
+            ? `${window.location.origin}/admin`
+            : 'http://localhost:3000/admin'),
         redirect: false, // Handle redirect manually to catch errors
         ...credentials
       });
