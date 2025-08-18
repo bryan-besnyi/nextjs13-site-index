@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter, useSearchParams } from 'next/navigation'
-import SearchFilters from '@/components/SearchFilters'
+import SearchFilters from '@/app/components/SearchFilters'
 
 // Mock Next.js navigation hooks
 jest.mock('next/navigation', () => ({

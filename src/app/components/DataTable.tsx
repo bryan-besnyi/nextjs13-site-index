@@ -102,8 +102,8 @@ export default function DataTable({ initialData }: DataTableProps) {
       <div 
         className="min-w-full divide-y divide-gray-300" 
         role="table" 
-        aria-label={`Index items table with ${searchResults.length} results`}
-        aria-rowcount={searchResults.length + 1}
+        aria-label={`Index items table with ${searchResults?.length || 0} results`}
+        aria-rowcount={(searchResults?.length || 0) + 1}
       >
         <div role="rowgroup">
           <TableHeader

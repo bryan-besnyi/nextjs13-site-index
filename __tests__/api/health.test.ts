@@ -2,8 +2,8 @@
  * @jest-environment node
  */
 
-import { createMocks } from 'node-mocks-http'
-import { GET, HEAD } from '@/app/api/health/route'
+import { testApiHandler } from 'next-test-api-route-handler'
+import * as appHandler from '@/app/api/health/route'
 import { prisma } from '@/lib/prisma-singleton'
 
 // Mock Prisma
@@ -50,15 +50,13 @@ describe('/api/health', () => {
 
   describe('GET /api/health', () => {
     it('should return healthy status when all checks pass', async () => {
-      const { req } = createMocks({
-        method: 'GET',
-        url: 'http://localhost:3000/api/health',
-      })
+      await testApiHandler({
+        appHandler,
+        test: async ({ fetch }) => {
+          const response = await fetch({ method: 'GET' })
+          const data = await response.json()
 
-      const response = await GET(req)
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
+          expect(response.status).toBe(200)
       expect(response.headers.get('Content-Type')).toBe('application/health+json')
       expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate')
       
@@ -83,9 +81,11 @@ describe('/api/health', () => {
       expect(data.checks.api[0].status).toBe('pass')
       expect(data.checks.api[0].observedValue).toBe(200)
       
-      // Check system health
-      expect(data.checks.system).toBeDefined()
-      expect(data.checks.system[0].componentType).toBe('system')
+          // Check system health
+          expect(data.checks.system).toBeDefined()
+          expect(data.checks.system[0].componentType).toBe('system')
+        }
+      })
     })
 
     it('should return warning status when record count is low', async () => {

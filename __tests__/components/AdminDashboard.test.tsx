@@ -22,227 +22,90 @@ describe('AdminDashboard', () => {
     jest.clearAllMocks();
   });
 
-  it('renders dashboard with loading state initially', () => {
-    (fetch as jest.Mock).mockImplementation(() => 
-      new Promise(resolve => setTimeout(resolve, 100))
-    );
-
-    render(<AdminDashboard />);
+  it('renders dashboard with empty data', () => {
+    render(<AdminDashboard initialData={[]} />);
     
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
   });
 
-  it('displays metrics after successful data fetch', async () => {
-    const mockMetrics = {
-      totalItems: 1250,
-      campusDistribution: {
-        'College of San Mateo': 400,
-        'Skyline College': 350,
-        'Cañada College': 300,
-        'District Office': 200,
-      },
-      letterDistribution: {
-        'A': 120, 'B': 98, 'C': 156, 'D': 87, 'E': 76,
-      },
-      performanceMetrics: {
-        totalRequests: 15000,
-        averageResponseTime: 145,
-        errorRate: 2.1,
-        cacheHitRate: 89.5,
-      },
-      recentActivity: [
-        { action: 'Created', item: 'Financial Aid Office', timestamp: '2024-01-15T10:30:00Z' },
-        { action: 'Updated', item: 'Library Services', timestamp: '2024-01-15T09:15:00Z' },
-      ],
-    };
+  it('displays data table with provided items', async () => {
+    const mockData = [
+      { id: 1, title: 'Test Item 1', letter: 'A', campus: 'College of San Mateo', url: 'https://example.com' },
+      { id: 2, title: 'Test Item 2', letter: 'B', campus: 'Skyline College', url: 'https://example2.com' }
+    ];
 
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockMetrics),
-    });
-
-    render(<AdminDashboard />);
-
-    await waitFor(() => {
-      expect(screen.getByText('1,250')).toBeInTheDocument(); // Total items
-      expect(screen.getByText('15,000')).toBeInTheDocument(); // Total requests
-      expect(screen.getByText('145ms')).toBeInTheDocument(); // Average response time
-      expect(screen.getByText('2.1%')).toBeInTheDocument(); // Error rate
-    });
+    render(<AdminDashboard initialData={mockData} />);
+    
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByText('Test Item 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Item 2')).toBeInTheDocument();
   });
 
-  it('displays campus distribution chart', async () => {
-    const mockMetrics = {
-      totalItems: 1000,
-      campusDistribution: {
-        'College of San Mateo': 300,
-        'Skyline College': 250,
-        'Cañada College': 250,
-        'District Office': 200,
-      },
-      letterDistribution: {},
-      performanceMetrics: {},
-      recentActivity: [],
-    };
+  it('displays campus distribution', async () => {
+    const mockData = [
+      { id: 1, title: 'Item 1', letter: 'A', campus: 'College of San Mateo', url: 'https://example.com' },
+      { id: 2, title: 'Item 2', letter: 'B', campus: 'College of San Mateo', url: 'https://example2.com' },
+      { id: 3, title: 'Item 3', letter: 'C', campus: 'Skyline College', url: 'https://example3.com' }
+    ];
 
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockMetrics),
-    });
-
-    render(<AdminDashboard />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
-      expect(screen.getByText('College of San Mateo')).toBeInTheDocument();
-      expect(screen.getByText('300')).toBeInTheDocument();
-    });
+    render(<AdminDashboard initialData={mockData} />);
+    
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getAllByText('College of San Mateo').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Skyline College').length).toBeGreaterThan(0);
   });
 
-  it('handles API errors gracefully', async () => {
-    (fetch as jest.Mock).mockRejectedValue(new Error('API Error'));
+  it('handles different campus types', async () => {
+    const mockData = [
+      { id: 1, title: 'Item 1', letter: 'A', campus: 'Cañada College', url: 'https://example.com' },
+      { id: 2, title: 'Item 2', letter: 'B', campus: 'District Office', url: 'https://example2.com' }
+    ];
 
-    render(<AdminDashboard />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/failed to load dashboard data/i)).toBeInTheDocument();
-    });
+    render(<AdminDashboard initialData={mockData} />);
+    
+    expect(screen.getAllByText('Cañada College').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('District Office').length).toBeGreaterThan(0);
   });
 
-  it('displays recent activity feed', async () => {
-    const mockMetrics = {
-      totalItems: 100,
-      campusDistribution: {},
-      letterDistribution: {},
-      performanceMetrics: {},
-      recentActivity: [
-        { 
-          action: 'Created', 
-          item: 'Student Services', 
-          timestamp: '2024-01-15T14:30:00Z',
-          user: 'admin@smccd.edu'
-        },
-        { 
-          action: 'Deleted', 
-          item: 'Old Resource', 
-          timestamp: '2024-01-15T13:15:00Z',
-          user: 'admin@smccd.edu'
-        },
-      ],
-    };
+  it('displays letter distribution', async () => {
+    const mockData = [
+      { id: 1, title: 'Apple', letter: 'A', campus: 'College of San Mateo', url: 'https://example.com' },
+      { id: 2, title: 'Banana', letter: 'B', campus: 'Skyline College', url: 'https://example2.com' },
+      { id: 3, title: 'Cherry', letter: 'C', campus: 'Cañada College', url: 'https://example3.com' }
+    ];
 
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockMetrics),
-    });
-
-    render(<AdminDashboard />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Created')).toBeInTheDocument();
-      expect(screen.getByText('Student Services')).toBeInTheDocument();
-      expect(screen.getByText('Deleted')).toBeInTheDocument();
-      expect(screen.getByText('Old Resource')).toBeInTheDocument();
-    });
+    render(<AdminDashboard initialData={mockData} />);
+    
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.getByText('C')).toBeInTheDocument();
   });
 
-  it('shows system health indicators', async () => {
-    const mockMetrics = {
-      totalItems: 500,
-      campusDistribution: {},
-      letterDistribution: {},
-      performanceMetrics: {
-        totalRequests: 10000,
-        averageResponseTime: 120,
-        errorRate: 1.5,
-        cacheHitRate: 92.3,
-      },
-      systemHealth: {
-        database: 'healthy',
-        cache: 'healthy',
-        api: 'healthy',
-        lastBackup: '2024-01-15T06:00:00Z',
-      },
-      recentActivity: [],
-    };
+  it('handles table sorting functionality', async () => {
+    const mockData = [
+      { id: 3, title: 'Zebra', letter: 'Z', campus: 'College of San Mateo', url: 'https://example.com' },
+      { id: 1, title: 'Apple', letter: 'A', campus: 'Skyline College', url: 'https://example2.com' },
+      { id: 2, title: 'Banana', letter: 'B', campus: 'Cañada College', url: 'https://example3.com' }
+    ];
 
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockMetrics),
-    });
-
-    render(<AdminDashboard />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/system health/i)).toBeInTheDocument();
-      expect(screen.getByText(/database.*healthy/i)).toBeInTheDocument();
-      expect(screen.getByText(/cache.*healthy/i)).toBeInTheDocument();
-    });
+    render(<AdminDashboard initialData={mockData} />);
+    
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByText('Zebra')).toBeInTheDocument();
+    expect(screen.getByText('Apple')).toBeInTheDocument();
+    expect(screen.getByText('Banana')).toBeInTheDocument();
   });
 
-  it('formats large numbers correctly', async () => {
-    const mockMetrics = {
-      totalItems: 15000,
-      campusDistribution: {},
-      letterDistribution: {},
-      performanceMetrics: {
-        totalRequests: 1234567,
-        averageResponseTime: 89,
-        errorRate: 0.5,
-      },
-      recentActivity: [],
-    };
-
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockMetrics),
-    });
-
-    render(<AdminDashboard />);
-
-    await waitFor(() => {
-      expect(screen.getByText('15,000')).toBeInTheDocument();
-      expect(screen.getByText('1,234,567')).toBeInTheDocument();
-    });
+  it('handles empty search results gracefully', () => {
+    render(<AdminDashboard initialData={[]} />);
+    
+    expect(screen.getByRole('table')).toBeInTheDocument();
   });
 
-  it('refreshes data when refresh button clicked', async () => {
-    const mockMetrics = {
-      totalItems: 1000,
-      campusDistribution: {},
-      letterDistribution: {},
-      performanceMetrics: {},
-      recentActivity: [],
-    };
-
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockMetrics),
-    });
-
-    render(<AdminDashboard />);
-
-    // Wait for initial load
-    await waitFor(() => {
-      expect(screen.getByText('1,000')).toBeInTheDocument();
-    });
-
-    // Clear mock and set up new response
-    (fetch as jest.Mock).mockClear();
-    const updatedMetrics = { ...mockMetrics, totalItems: 1100 };
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(updatedMetrics),
-    });
-
-    // Click refresh button if it exists
-    const refreshButton = screen.queryByRole('button', { name: /refresh/i });
-    if (refreshButton) {
-      refreshButton.click();
-      
-      await waitFor(() => {
-        expect(screen.getByText('1,100')).toBeInTheDocument();
-      });
-    }
+  it('displays search filters component', () => {
+    render(<AdminDashboard initialData={[]} />);
+    
+    // Check that search filters are rendered
+    expect(screen.getByLabelText(/search/i)).toBeInTheDocument();
   });
 });

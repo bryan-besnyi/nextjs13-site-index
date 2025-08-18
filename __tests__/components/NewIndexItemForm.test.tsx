@@ -43,9 +43,8 @@ describe('NewIndexItemForm', () => {
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/url/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/letter/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/campus/i)).toBeInTheDocument();
     
-    // Check campus radio buttons
+    // Check campus radio buttons (the campus field is a fieldset with radio buttons)
     expect(screen.getByLabelText('College of San Mateo')).toBeInTheDocument();
     expect(screen.getByLabelText('Cañada College')).toBeInTheDocument();
     expect(screen.getByLabelText('District Office')).toBeInTheDocument();

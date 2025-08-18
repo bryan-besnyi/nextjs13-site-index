@@ -75,8 +75,8 @@ export default function AlertsDashboard() {
             endpoint: '/api/indexItems',
             timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 min ago
             acknowledged: false,
-            resolvedAt: null,
-            details: { responseTime: 2500, threshold: 1000 }
+            resolvedAt: undefined,
+            details: { current: 2500, threshold: 1000, unit: 'ms' }
           },
           {
             id: 'mock-2', 
@@ -86,12 +86,12 @@ export default function AlertsDashboard() {
             endpoint: '/api/admin/*',
             timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 min ago
             acknowledged: true,
-            resolvedAt: null,
-            details: { errorRate: 5.2, threshold: 5.0 }
+            resolvedAt: undefined,
+            details: { current: 5.2, threshold: 5.0, unit: '%' }
           },
           {
             id: 'mock-3',
-            type: 'cache_miss',
+            type: 'cache_performance',
             severity: 'info', 
             message: 'Cache miss rate above normal',
             endpoint: '/api/indexItems',
@@ -101,14 +101,14 @@ export default function AlertsDashboard() {
           },
           {
             id: 'mock-4',
-            type: 'resource_usage',
+            type: 'memory_usage',
             severity: 'critical',
             message: 'Memory usage critical threshold exceeded',
-            endpoint: null,
+            endpoint: undefined,
             timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 min ago  
             acknowledged: true,
-            resolvedAt: null,
-            details: { memoryUsage: 95.8, threshold: 90.0 }
+            resolvedAt: undefined,
+            details: { current: 95.8, threshold: 90.0, unit: '%' }
           }
         ]);
         toast.success('Preview mode: Showing sample alerts data');

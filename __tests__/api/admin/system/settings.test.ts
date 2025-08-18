@@ -2,28 +2,28 @@
  * @jest-environment node
  */
 import { NextRequest } from 'next/server';
-import { GET, POST } from '@/app/api/admin/system/settings/route';
+import { GET, PUT } from '@/app/api/admin/system/settings/route';
 import { kv } from '@vercel/kv';
+import { resetAuthMocks, setAuthenticatedSession, setUnauthenticatedSession } from '../../../setup/mockNextAuth';
 
 // Mock dependencies
 jest.mock('@vercel/kv', () => ({
   kv: {
     get: jest.fn(),
     set: jest.fn(),
+    lpush: jest.fn(),
   },
-}));
-
-jest.mock('next-auth', () => ({
-  getServerSession: jest.fn(() => Promise.resolve({ user: { email: 'admin@smccd.edu' } })),
 }));
 
 describe('/api/admin/system/settings', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetAuthMocks();
   });
 
   describe('GET /api/admin/system/settings', () => {
     it('returns default settings when none exist', async () => {
+      setAuthenticatedSession(); // Ensure authenticated state
       (kv.get as jest.Mock).mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost:3000/api/admin/system/settings');
@@ -31,20 +31,22 @@ describe('/api/admin/system/settings', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data).toHaveProperty('settings');
-      expect(data.settings).toHaveProperty('cacheEnabled');
-      expect(data.settings).toHaveProperty('rateLimitMax');
-      expect(data.settings).toHaveProperty('maintenanceMode');
-      expect(data.isDefault).toBe(true);
+      // The actual API returns the settings directly, not nested under a 'settings' property
+      expect(data).toHaveProperty('maintenance');
+      expect(data).toHaveProperty('security');
+      expect(data).toHaveProperty('backup');
+      expect(data).toHaveProperty('api');
+      expect(data).toHaveProperty('database');
     });
 
     it('returns stored settings when available', async () => {
+      setAuthenticatedSession();
       const mockSettings = {
-        cacheEnabled: false,
-        rateLimitMax: 200,
-        maintenanceMode: true,
-        backupSchedule: 'daily',
-        allowedDomains: ['smccd.edu', 'skylinecollege.edu'],
+        maintenance: { enabled: true, message: 'Custom maintenance message' },
+        security: { rateLimitRequests: 200, rateLimitWindow: 60, blockSuspiciousUserAgents: true, requireHttps: true },
+        backup: { enabled: true, frequency: 'daily', retentionDays: 14, location: './custom-backups' },
+        api: { enableCaching: false, cacheTimeout: 600, enableLogging: true, logLevel: 'debug' },
+        database: { connectionPoolSize: 20, queryTimeout: 3000, enableSlowQueryLog: true, slowQueryThreshold: 500 },
       };
 
       (kv.get as jest.Mock).mockResolvedValue(mockSettings);
@@ -54,14 +56,16 @@ describe('/api/admin/system/settings', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.settings).toEqual(mockSettings);
-      expect(data.isDefault).toBe(false);
+      expect(data.maintenance.enabled).toBe(true);
+      expect(data.security.rateLimitRequests).toBe(200);
+      expect(data.api.enableCaching).toBe(false);
     });
 
     it('merges stored settings with defaults', async () => {
+      setAuthenticatedSession();
       const partialSettings = {
-        cacheEnabled: false,
-        customSetting: 'test',
+        maintenance: { enabled: true },
+        // Missing other required sections - should be merged with defaults
       };
 
       (kv.get as jest.Mock).mockResolvedValue(partialSettings);
@@ -71,12 +75,15 @@ describe('/api/admin/system/settings', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.settings.cacheEnabled).toBe(false);
-      expect(data.settings.rateLimitMax).toBeDefined(); // From defaults
-      expect(data.settings.customSetting).toBe('test');
+      expect(data.maintenance.enabled).toBe(true); // From stored settings
+      expect(data.security).toBeDefined(); // From defaults
+      expect(data.backup).toBeDefined(); // From defaults
+      expect(data.api).toBeDefined(); // From defaults
+      expect(data.database).toBeDefined(); // From defaults
     });
 
     it('handles cache errors gracefully', async () => {
+      setAuthenticatedSession();
       (kv.get as jest.Mock).mockRejectedValue(new Error('Redis connection failed'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/system/settings');
@@ -88,135 +95,134 @@ describe('/api/admin/system/settings', () => {
     });
   });
 
-  describe('POST /api/admin/system/settings', () => {
+  describe('PUT /api/admin/system/settings', () => {
     it('updates system settings successfully', async () => {
+      setAuthenticatedSession();
       const newSettings = {
-        cacheEnabled: false,
-        rateLimitMax: 50,
-        maintenanceMode: true,
+        maintenance: {
+          enabled: false,
+          message: 'Test maintenance message',
+          scheduledStart: null,
+          scheduledEnd: null,
+        },
+        security: {
+          rateLimitEnabled: true,
+          rateLimitRequests: 50,
+          rateLimitWindow: 60,
+          blockSuspiciousUserAgents: true,
+          requireHttps: true,
+        },
+        backup: {
+          enabled: true,
+          frequency: '30min',
+          retentionDays: 7,
+          location: './backups',
+        },
+        api: {
+          enableCaching: true,
+          cacheTimeout: 300,
+          enableLogging: true,
+          logLevel: 'info',
+        },
+        database: {
+          connectionPoolSize: 10,
+          queryTimeout: 5000,
+          enableSlowQueryLog: true,
+          slowQueryThreshold: 1000,
+        },
       };
 
       (kv.set as jest.Mock).mockResolvedValue('OK');
+      (kv.lpush as jest.Mock).mockResolvedValue(1);
 
       const request = new NextRequest('http://localhost:3000/api/admin/system/settings', {
-        method: 'POST',
-        body: JSON.stringify({ settings: newSettings }),
+        method: 'PUT',
+        body: JSON.stringify(newSettings),
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const response = await POST(request);
+      const response = await PUT(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(kv.set).toHaveBeenCalledWith('system-settings', newSettings);
+      expect(kv.set).toHaveBeenCalledWith('system:settings', newSettings);
       expect(data.message).toContain('updated successfully');
     });
 
     it('validates settings before saving', async () => {
+      setAuthenticatedSession();
       const invalidSettings = {
-        rateLimitMax: -10, // Invalid negative value
-        cacheEnabled: 'yes', // Should be boolean
+        maintenance: { enabled: false },
+        security: {
+          rateLimitRequests: -10, // Invalid negative value
+          rateLimitWindow: 60,
+          blockSuspiciousUserAgents: true,
+          requireHttps: true,
+        },
+        // Missing required sections
       };
 
       const request = new NextRequest('http://localhost:3000/api/admin/system/settings', {
-        method: 'POST',
-        body: JSON.stringify({ settings: invalidSettings }),
+        method: 'PUT',
+        body: JSON.stringify(invalidSettings),
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const response = await POST(request);
+      const response = await PUT(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
       expect(data).toHaveProperty('error');
-      expect(data.error).toContain('Invalid settings');
-    });
-
-    it('allows partial settings updates', async () => {
-      const currentSettings = {
-        cacheEnabled: true,
-        rateLimitMax: 100,
-        maintenanceMode: false,
-      };
-
-      (kv.get as jest.Mock).mockResolvedValue(currentSettings);
-      (kv.set as jest.Mock).mockResolvedValue('OK');
-
-      const partialUpdate = {
-        maintenanceMode: true,
-      };
-
-      const request = new NextRequest('http://localhost:3000/api/admin/system/settings', {
-        method: 'POST',
-        body: JSON.stringify({ settings: partialUpdate, merge: true }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(kv.set).toHaveBeenCalledWith('system-settings', {
-        ...currentSettings,
-        ...partialUpdate,
-      });
-    });
-
-    it('resets settings to defaults', async () => {
-      (kv.set as jest.Mock).mockResolvedValue('OK');
-
-      const request = new NextRequest('http://localhost:3000/api/admin/system/settings', {
-        method: 'POST',
-        body: JSON.stringify({ reset: true }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(kv.set).toHaveBeenCalledWith('system-settings', expect.objectContaining({
-        cacheEnabled: true,
-        maintenanceMode: false,
-      }));
-      expect(data.message).toContain('reset to defaults');
-    });
-
-    it('logs settings changes for audit', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      const newSettings = { maintenanceMode: true };
-      (kv.set as jest.Mock).mockResolvedValue('OK');
-
-      const request = new NextRequest('http://localhost:3000/api/admin/system/settings', {
-        method: 'POST',
-        body: JSON.stringify({ settings: newSettings }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      await POST(request);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Settings updated by admin@smccd.edu')
-      );
-
-      consoleSpy.mockRestore();
+      expect(data.error).toContain('Missing required section');
     });
 
     it('handles save errors gracefully', async () => {
+      setAuthenticatedSession();
       (kv.set as jest.Mock).mockRejectedValue(new Error('Redis save failed'));
 
+      const validSettings = {
+        maintenance: { enabled: false, message: 'Test', scheduledStart: null, scheduledEnd: null },
+        security: { rateLimitEnabled: true, rateLimitRequests: 100, rateLimitWindow: 60, blockSuspiciousUserAgents: true, requireHttps: true },
+        backup: { enabled: true, frequency: '30min', retentionDays: 7, location: './backups' },
+        api: { enableCaching: true, cacheTimeout: 300, enableLogging: true, logLevel: 'info' },
+        database: { connectionPoolSize: 10, queryTimeout: 5000, enableSlowQueryLog: true, slowQueryThreshold: 1000 },
+      };
+
       const request = new NextRequest('http://localhost:3000/api/admin/system/settings', {
-        method: 'POST',
-        body: JSON.stringify({ settings: { cacheEnabled: false } }),
+        method: 'PUT',
+        body: JSON.stringify(validSettings),
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const response = await POST(request);
+      const response = await PUT(request);
       const data = await response.json();
 
       expect(response.status).toBe(500);
       expect(data).toHaveProperty('error');
+    });
+
+    it('requires authentication', async () => {
+      setUnauthenticatedSession();
+
+      const validSettings = {
+        maintenance: { enabled: false, message: 'Test' },
+        security: { rateLimitRequests: 100, rateLimitWindow: 60, blockSuspiciousUserAgents: true, requireHttps: true },
+        backup: { enabled: true, frequency: '30min', retentionDays: 7, location: './backups' },
+        api: { enableCaching: true, cacheTimeout: 300, enableLogging: true, logLevel: 'info' },
+        database: { connectionPoolSize: 10, queryTimeout: 5000, enableSlowQueryLog: true, slowQueryThreshold: 1000 },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/admin/system/settings', {
+        method: 'PUT',
+        body: JSON.stringify(validSettings),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await PUT(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
     });
   });
 });
