@@ -163,7 +163,7 @@ model User {
   email         String            @unique
   username      String?           @unique
   password      String?
-  role          UserRole          @default(FACULTY)
+  role          UserRole          @default(STAFF)
   college       College?
   website       String?
   createdAt     DateTime          @default(now())
@@ -240,9 +240,10 @@ enum TermSeason {
 }
 
 enum UserRole {
-  FACULTY
-  ADMIN
-  STAFF
+  SUPER_ADMIN     // Web Services team - full system access
+  COLLEGE_ADMIN   // College Developers - college-specific access  
+  STAFF           // General staff - limited access
+  FACULTY         // Faculty - read-only access
 }
 
 model ActivityLog {

@@ -2,20 +2,19 @@ import { AuthOptions } from 'next-auth';
 import OneLoginProvider from 'next-auth/providers/onelogin';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
-// Check if we should bypass auth (for preview builds)
-const bypassAuth = process.env.BYPASS_AUTH === 'true' || process.env.VERCEL_ENV === 'preview';
+// Simple bypass mode for development
+const bypassAuth = process.env.BYPASS_AUTH === 'true';
 
 const authOptions: AuthOptions = {
   providers: [
-    // Add a simple credentials provider for preview/dev environments
+    // Development bypass provider
     ...(bypassAuth ? [
       CredentialsProvider({
-        name: 'Preview Mode',
+        name: 'Development',
         credentials: {
-          email: { label: "Email", type: "email", placeholder: "test@example.com" }
+          email: { label: "Email", type: "email", placeholder: "test@smccd.edu" }
         },
         async authorize(credentials) {
-          // In preview mode, accept any email
           if (credentials?.email) {
             return {
               id: '1',
@@ -27,62 +26,49 @@ const authOptions: AuthOptions = {
         }
       })
     ] : []),
+    // Production OneLogin provider
     OneLoginProvider({
-      clientId: process.env.ONELOGIN_CLIENT_ID,
-      clientSecret: process.env.ONELOGIN_CLIENT_SECRET,
+      clientId: process.env.ONELOGIN_CLIENT_ID!,
+      clientSecret: process.env.ONELOGIN_CLIENT_SECRET!,
       issuer: process.env.ONELOGIN_ISSUER || 'https://smccd.onelogin.com',
-      profile(profile) {
-        // console.log('Raw profile data from OneLogin:', profile)
-        return {
-          id: profile.sub,
-          name: profile.name || `${profile.given_name} ${profile.family_name}`,
-          email: profile.email,
-          preferred_username: profile.preferred_username
-        };
-      }
     })
   ],
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 60, // 30 minutes
-    updateAge: 5 * 60, // Update session every 5 minutes
-  },
+  
   callbacks: {
-    async jwt({ token, account, user, profile }) {
-      // await console.log('JWT callback - entire profile:', profile)
-
-      if (account && user) {
-        token.accessToken = account.access_token;
-        token.name = user.name;
+    async signIn({ user }) {
+      // In bypass mode, allow any @smccd.edu email
+      if (bypassAuth) {
+        return user.email?.endsWith('@smccd.edu') || user.email === 'test@example.com' || true;
+      }
+      
+      // Production: only SMCCCD domain
+      return user.email?.endsWith('@smccd.edu') || false;
+    },
+    
+    async jwt({ token, user }) {
+      if (user) {
         token.email = user.email;
-        token.sub = user.id;
-        token.iat = Date.now() / 1000; // Issued at time
-        token.exp = Date.now() / 1000 + (30 * 60); // Expires in 30 minutes
-        // console.log('JWT callback - token.sub:', token.sub)
+        token.name = user.name;
       }
       return token;
     },
+    
     async session({ session, token }) {
-      // Check if token has expired
-      if (token.exp && Date.now() / 1000 > Number(token.exp)) {
-        // Return empty session object instead of null to satisfy TypeScript
-        return { ...session, user: { ...session.user, name: null, email: null } };
+      if (token) {
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
       }
-      
-      if (session.user) {
-        session.user.name = token.name;
-        session.user.email = token.email;
-      }
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Session callback - session:', session);
-      }
-
       return session;
     }
   },
-  debug: process.env.NODE_ENV === 'development',
-  secret: process.env.NEXTAUTH_SECRET
+  
+  pages: {
+    signIn: '/auth/signin'
+  },
+  
+  session: {
+    strategy: 'jwt'
+  }
 };
 
 export default authOptions;

@@ -119,11 +119,25 @@ export default function UsageStatsPage() {
 
   return (
     <div className="space-y-6">
+      {/* CRITICAL WARNING BANNER */}
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center space-x-2">
+          <AlertCircle className="h-5 w-5 text-red-600" />
+          <div>
+            <h3 className="text-red-800 font-semibold">⚠️ DEMO DATA ONLY - NOT PRODUCTION METRICS</h3>
+            <p className="text-red-700 text-sm mt-1">
+              This page displays <strong>simulated/mock data</strong> for demonstration purposes. 
+              These numbers are NOT real usage statistics. Real API tracking is not yet implemented.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Usage Statistics</h1>
-          <p className="text-gray-600 mt-1">API usage analytics and system utilization metrics</p>
+          <h1 className="text-3xl font-bold">Usage Statistics <span className="text-red-600 text-lg">(DEMO MODE)</span></h1>
+          <p className="text-gray-600 mt-1">⚠️ Mock data for UI demonstration - not real analytics</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex bg-gray-100 rounded-lg p-1">

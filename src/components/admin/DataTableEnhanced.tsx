@@ -174,10 +174,40 @@ const columns: ColumnDef<IndexItem>[] = [
 export default function DataTableEnhanced({ initialData }: DataTableEnhancedProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+    url: false // Hide URL column by default to keep Actions visible
+  });
   const [rowSelection, setRowSelection] = React.useState({});
   const [isLoading, setIsLoading] = React.useState(false);
   const [operationError, setOperationError] = React.useState<string | null>(null);
+  const [pageSize, setPageSize] = React.useState(10);
+  const [isClient, setIsClient] = React.useState(false);
+
+  // Handle client-side mounting to avoid hydration issues
+  React.useEffect(() => {
+    setIsClient(true);
+    
+    const calculatePageSize = () => {
+      const windowHeight = window.innerHeight;
+      const reservedHeight = 400;
+      const availableHeight = windowHeight - reservedHeight;
+      const rowHeight = 50;
+      const calculatedRows = Math.floor(availableHeight / rowHeight);
+      const safePageSize = Math.max(8, calculatedRows - 3);
+      return Math.min(safePageSize, 35);
+    };
+
+    const newPageSize = calculatePageSize();
+    setPageSize(newPageSize);
+
+    const handleResize = () => {
+      const newPageSize = calculatePageSize();
+      setPageSize(newPageSize);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const table = useReactTable({
     data: initialData,
@@ -190,6 +220,11 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    initialState: {
+      pagination: {
+        pageSize: pageSize,
+      },
+    },
     state: {
       sorting,
       columnFilters,
@@ -197,6 +232,13 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
       rowSelection,
     },
   });
+
+  // Update table page size when pageSize state changes
+  React.useEffect(() => {
+    if (isClient) {
+      table.setPageSize(pageSize);
+    }
+  }, [pageSize, isClient, table]);
 
   const selectedRowCount = table.getFilteredSelectedRowModel().rows.length;
 
@@ -278,9 +320,9 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
 
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Index Items</CardTitle>
+    <Card className="flex flex-col h-full">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg">Index Items</CardTitle>
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
             <Input
@@ -404,14 +446,6 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
                 Export
               </Button>
               <Button 
-                variant="outline" 
-                size="sm"
-                disabled={isLoading}
-                onClick={() => toast('Bulk edit feature coming soon', { icon: 'ℹ️' })}
-              >
-                Bulk Edit
-              </Button>
-              <Button 
                 variant="destructive" 
                 size="sm" 
                 onClick={handleBulkDelete}
@@ -427,11 +461,11 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
         )}
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col p-4">
         {/* Data Table */}
-        <div className="relative rounded-md border overflow-hidden">
+        <div className="relative rounded-md border overflow-hidden flex-1 flex flex-col">
           <div 
-            className="overflow-x-auto"
+            className="overflow-x-auto flex-1"
             role="table"
             aria-label="Index items data table"
             aria-describedby="table-summary"
@@ -501,9 +535,9 @@ export default function DataTableEnhanced({ initialData }: DataTableEnhancedProp
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between py-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between py-2 mt-2 flex-shrink-0">
           <div className="text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} of{' '}
+            {selectedRowCount} of{' '}
             {table.getFilteredRowModel().rows.length} row(s) selected.
           </div>
           <div className="flex items-center space-x-2">

@@ -7,15 +7,11 @@ import {
   LayoutDashboard,
   Database,
   Code2,
-  TrendingUp,
   Settings,
   ChevronDown,
   ChevronRight,
   FileText,
   Import,
-  Zap,
-  Search,
-  BarChart3,
   Activity,
   Archive,
   Shield,
@@ -57,11 +53,6 @@ const sidebarItems: SidebarItem[] = [
         href: "/admin/data/import-export",
         icon: Import
       },
-      { 
-        title: "Bulk Operations", 
-        href: "/admin/data/bulk",
-        icon: Zap
-      },
     ],
   },
   {
@@ -87,22 +78,6 @@ const sidebarItems: SidebarItem[] = [
         title: "Alerts", 
         href: "/admin/tools/alerts",
         icon: Bell
-      },
-    ],
-  },
-  {
-    title: "Analytics",
-    icon: TrendingUp,
-    items: [
-      { 
-        title: "Usage Stats", 
-        href: "/admin/analytics/usage",
-        icon: BarChart3
-      },
-      { 
-        title: "Search Insights", 
-        href: "/admin/analytics/search",
-        icon: Search
       },
     ],
   },

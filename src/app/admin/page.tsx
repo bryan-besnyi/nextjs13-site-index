@@ -166,7 +166,6 @@ export default async function AdminDashboardPage() {
           value={metrics.totalItems.toLocaleString()}
           description="Across all campuses"
           icon={Database}
-          trend={{ value: 2.5, isPositive: true }}
         />
         
         <MetricsCard
@@ -174,10 +173,6 @@ export default async function AdminDashboardPage() {
           value={`${metrics.performanceMetrics?.averageResponseTime?.toFixed(0) || 'N/A'}ms`}
           description="Average last 24h"
           icon={Gauge}
-          trend={{ 
-            value: metrics.performanceMetrics ? 5.2 : 0, 
-            isPositive: false 
-          }}
         />
         
         <MetricsCard

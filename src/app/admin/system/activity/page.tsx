@@ -146,11 +146,11 @@ export default function ActivityTrailPage() {
     );
   }
 
-  // Check if we're in production without activity logging enabled
-  const isProduction = process.env.NODE_ENV === 'production';
+  // Check if activity logging is properly configured
   const activityLoggingEnabled = process.env.ENABLE_ACTIVITY_LOGGING === 'true';
+  const isPreviewMode = process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV === 'development';
   
-  if (isProduction && !activityLoggingEnabled && activities.length === 0) {
+  if (!activityLoggingEnabled && activities.length === 0) {
     return (
       <div className="space-y-6">
         <div>
@@ -158,18 +158,31 @@ export default function ActivityTrailPage() {
           <p className="text-gray-600 mt-1">Monitor all system activity and user actions</p>
         </div>
         
-        <Card>
+        <Card className="border-yellow-200">
           <CardContent className="py-12">
             <div className="text-center">
-              <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Activity Logging Not Enabled</h3>
-              <p className="text-gray-600 max-w-md mx-auto">
-                Activity logging is currently disabled in production. To enable it, set the 
-                ENABLE_ACTIVITY_LOGGING environment variable to &quot;true&quot; and ensure the ActivityLog 
-                database table has been created.
+              <Shield className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-yellow-800">⚠️ Activity Logging Not Configured</h3>
+              <p className="text-gray-600 max-w-md mx-auto mb-4">
+                Activity logging is currently disabled. To enable comprehensive activity tracking, 
+                the <code className="bg-gray-100 px-1 rounded">ENABLE_ACTIVITY_LOGGING</code> environment 
+                variable must be set to &quot;true&quot;.
               </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-lg mx-auto">
+                <h4 className="font-medium text-blue-800 mb-2">What this feature provides:</h4>
+                <ul className="text-sm text-blue-700 text-left space-y-1">
+                  <li>• User authentication and access logs</li>
+                  <li>• API endpoint usage tracking</li>
+                  <li>• Data modification audit trail</li>
+                  <li>• Admin action monitoring</li>
+                  <li>• Performance and error tracking</li>
+                </ul>
+              </div>
               <p className="text-sm text-gray-500 mt-4">
-                Note: This feature only works in development mode by default to protect production databases.
+                {isPreviewMode ? 
+                  "Currently in preview mode - activity logging is optional for testing environments." :
+                  "Activity logging is disabled by default in production for performance and privacy."
+                }
               </p>
             </div>
           </CardContent>

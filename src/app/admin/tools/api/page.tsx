@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Play, 
-  Copy, 
-  Clock, 
-  CheckCircle, 
+import {
+  Play,
+  Copy,
+  Clock,
+  CheckCircle,
   AlertCircle,
   Code,
   Download
@@ -25,16 +25,30 @@ interface ApiResponse {
 
 const commonEndpoints = [
   { name: 'Get All Items', method: 'GET', url: '/api/indexItems' },
-  { name: 'Filter by Campus', method: 'GET', url: '/api/indexItems?campus=College+of+San+Mateo' },
-  { name: 'Search Items', method: 'GET', url: '/api/indexItems?search=physics' },
+  {
+    name: 'Filter by Campus',
+    method: 'GET',
+    url: '/api/indexItems?campus=College+of+San+Mateo'
+  },
+  {
+    name: 'Search Items',
+    method: 'GET',
+    url: '/api/indexItems?search=physics'
+  },
   { name: 'Health Check', method: 'GET', url: '/api/health' },
-  { name: 'Performance Metrics', method: 'GET', url: '/api/metrics?type=analytics' },
+  {
+    name: 'Performance Metrics',
+    method: 'GET',
+    url: '/api/metrics?type=analytics'
+  }
 ];
 
 export default function ApiExplorerPage() {
   const [method, setMethod] = useState('GET');
   const [url, setUrl] = useState('/api/indexItems');
-  const [headers, setHeaders] = useState('{\n  "User-Agent": "API-Explorer/1.0"\n}');
+  const [headers, setHeaders] = useState(
+    '{\n  "User-Agent": "API-Explorer/1.0"\n}'
+  );
   const [body, setBody] = useState('');
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,14 +76,21 @@ export default function ApiExplorerPage() {
       try {
         if (headers.trim()) {
           parsedHeaders = JSON.parse(headers);
-          
+
           // Validate headers object
-          if (typeof parsedHeaders !== 'object' || Array.isArray(parsedHeaders)) {
+          if (
+            typeof parsedHeaders !== 'object' ||
+            Array.isArray(parsedHeaders)
+          ) {
             throw new Error('Headers must be a valid JSON object');
           }
         }
       } catch (e) {
-        toast.error(`Invalid JSON in headers: ${e instanceof Error ? e.message : 'Unknown error'}`);
+        toast.error(
+          `Invalid JSON in headers: ${
+            e instanceof Error ? e.message : 'Unknown error'
+          }`
+        );
         setLoading(false);
         return;
       }
@@ -79,7 +100,11 @@ export default function ApiExplorerPage() {
         try {
           JSON.parse(body);
         } catch (e) {
-          toast.error(`Invalid JSON in request body: ${e instanceof Error ? e.message : 'Unknown error'}`);
+          toast.error(
+            `Invalid JSON in request body: ${
+              e instanceof Error ? e.message : 'Unknown error'
+            }`
+          );
           setLoading(false);
           return;
         }
@@ -90,8 +115,8 @@ export default function ApiExplorerPage() {
         headers: {
           'Content-Type': 'application/json',
           'X-Admin-Request': 'true',
-          ...parsedHeaders,
-        },
+          ...parsedHeaders
+        }
       };
 
       if (method !== 'GET' && body.trim()) {
@@ -105,24 +130,28 @@ export default function ApiExplorerPage() {
 
       const res = await fetch(url, options);
       clearTimeout(timeoutId);
-      
+
       const responseTime = Math.round(performance.now() - startTime);
-      
+
       // Try to parse response as JSON, fallback to text
       let data;
       const contentType = res.headers.get('content-type');
-      
+
       try {
         if (contentType?.includes('application/json')) {
           data = await res.json();
         } else {
           const textData = await res.text();
-          data = textData || `No response body (${res.status} ${res.statusText})`;
+          data =
+            textData || `No response body (${res.status} ${res.statusText})`;
         }
       } catch (parseError) {
-        data = { 
+        data = {
           error: 'Failed to parse response',
-          details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
+          details:
+            parseError instanceof Error
+              ? parseError.message
+              : 'Unknown parsing error'
         };
       }
 
@@ -135,7 +164,7 @@ export default function ApiExplorerPage() {
         status: res.status,
         data,
         headers: responseHeaders,
-        responseTime,
+        responseTime
       });
 
       // Show appropriate toast messages
@@ -148,17 +177,19 @@ export default function ApiExplorerPage() {
       } else {
         toast.error(`Request failed with status ${res.status}`);
       }
-
     } catch (error) {
       const responseTime = Math.round(performance.now() - startTime);
-      
+
       let errorMessage = 'Request failed';
       let errorData: any = { error: 'Unknown error occurred' };
 
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           errorMessage = 'Request timed out (30s limit)';
-          errorData = { error: 'Request timeout', details: 'The request took too long to complete' };
+          errorData = {
+            error: 'Request timeout',
+            details: 'The request took too long to complete'
+          };
         } else if (error.message.includes('fetch')) {
           errorMessage = 'Network error - check your connection';
           errorData = { error: 'Network error', details: error.message };
@@ -172,7 +203,7 @@ export default function ApiExplorerPage() {
         status: 0,
         data: errorData,
         headers: {},
-        responseTime,
+        responseTime
       });
 
       toast.error(errorMessage);
@@ -182,7 +213,7 @@ export default function ApiExplorerPage() {
     setLoading(false);
   };
 
-  const loadPreset = (preset: typeof commonEndpoints[0]) => {
+  const loadPreset = (preset: (typeof commonEndpoints)[0]) => {
     setMethod(preset.method);
     setUrl(preset.url);
   };
@@ -196,7 +227,7 @@ export default function ApiExplorerPage() {
 
   const copyAsCurl = () => {
     let curlCommand = `curl -X ${method} "${window.location.origin}${url}"`;
-    
+
     try {
       const parsedHeaders = JSON.parse(headers);
       Object.entries(parsedHeaders).forEach(([key, value]) => {
@@ -237,7 +268,7 @@ export default function ApiExplorerPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-1">
         {/* Request Builder */}
         <Card>
           <CardHeader>
@@ -327,7 +358,11 @@ export default function ApiExplorerPage() {
               <CardTitle>Response</CardTitle>
               {response && (
                 <div className="flex items-center gap-4">
-                  <div className={`flex items-center gap-2 ${getStatusColor(response.status)}`}>
+                  <div
+                    className={`flex items-center gap-2 ${getStatusColor(
+                      response.status
+                    )}`}
+                  >
                     {getStatusIcon(response.status)}
                     <span className="font-mono text-sm">
                       {response.status > 0 ? response.status : 'Error'}

@@ -8,6 +8,7 @@ import * as CachedIndexItems from '@/lib/indexItems-cached';
 import { PerformanceOptimizer, QueryOptimizer, PERFORMANCE_TARGETS } from '@/lib/performance-optimizations';
 import { CSRFProtection } from '@/lib/csrf';
 import { QueryCache } from '@/lib/query-cache';
+import { coalescedQuery, generateRequestKey } from '@/lib/request-coalescing';
 import { 
   CreateIndexItemSchema, 
   UpdateIndexItemSchema, 
@@ -16,6 +17,11 @@ import {
 } from '@/lib/validation-schemas';
 import { validateQuery, validateBody, validateUserAgent } from '@/lib/validation-middleware';
 import { ActivityLogger } from '@/lib/activity-logger';
+import { fastCache, getCacheKey } from '@/lib/fast-cache';
+import { initializeServer } from '@/lib/startup';
+
+// Initialize server on first request
+initializeServer().catch(console.error);
 
 // Optimized caching strategy
 const CACHE_TTL = 4 * 60 * 60; // 4 hours (more aggressive caching)
@@ -122,13 +128,43 @@ export async function GET(req: NextRequest) {
 
     // Parameters are now validated and normalized by the validation middleware
 
+    // Check fast in-memory cache first for campus, letter, and campus+letter queries
+    const isOptimizedQuery = (campus || letter) && !search;
+    const fastCacheKey = isOptimizedQuery ? getCacheKey('fast:index', { campus, letter }) : null;
+    
+    if (fastCacheKey) {
+      const fastCached = fastCache.get(fastCacheKey);
+      if (fastCached) {
+        cacheHit = true;
+        const metrics = await perfMonitor.recordMetrics(200, {
+          cacheHit: true,
+          cacheQueryTime: 1, // Near-instant
+          resultCount: Array.isArray(fastCached) ? fastCached.length : 0
+        });
+        
+        return NextResponse.json(fastCached, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+            'CDN-Cache-Control': 'max-age=3600',
+            'Vercel-CDN-Cache-Control': 'max-age=3600',
+            'X-Cache': 'MEMORY-HIT',
+            'X-Response-Time': `${metrics.responseTime}ms`,
+            'X-Cache-Time': '1ms',
+            'X-RateLimit-Remaining': remaining.toString()
+          }
+        });
+      }
+    }
+
     // Smart cache key strategy - don't cache short searches to prevent pollution
     const shouldCache = !search || search.length >= 3;
     const cacheKey = shouldCache ? `${CACHE_PREFIX}${campus}:${letter}:${search}` : null;
     
-    // Try cache first with timing (only if we should cache)
+    // Try Redis/KV cache next (only if we should cache and not an optimized query)
     let indexItems: any;
-    if (cacheKey) {
+    if (cacheKey && !isOptimizedQuery) {
       try {
         const { result: cached, cacheTime } = await timeCacheOperation(
           () => kv.get(cacheKey),
@@ -164,7 +200,9 @@ export async function GET(req: NextRequest) {
             headers: {
               ...corsHeaders,
               'Content-Type': 'application/json',
-              'Cache-Control': 'public, max-age=14400, s-maxage=14400',
+              'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+              'CDN-Cache-Control': 'max-age=3600',
+              'Vercel-CDN-Cache-Control': 'max-age=3600',
               'X-Cache': 'HIT',
               'X-Response-Time': `${metrics.responseTime}ms`,
               'X-Cache-Time': `${cacheQueryTime}ms`,
@@ -180,20 +218,26 @@ export async function GET(req: NextRequest) {
     // Optimized database query using performance optimizations
     const startTime = performance.now();
     
-    // Use optimized query with multi-level caching (only if we should cache)
+    // Use optimized query with multi-level caching and request coalescing
     if (cacheKey) {
-      indexItems = await PerformanceOptimizer.getWithCache(
-        cacheKey,
-        () => QueryOptimizer.getIndexItems({
-          campus,
-          letter,
-          search
-        }),
-        {
-          priority: campus ? 'hot' : 'warm', // Campus queries are typically more popular
-          redisTtl: search ? 1800 : CACHE_TTL, // Shorter TTL for search queries (30 min vs 4 hours)
-          memoryTtl: 5 * 60 * 1000 // 5 minutes in memory for ultra-fast repeat requests
-        }
+      // Generate request key for coalescing
+      const requestKey = generateRequestKey({ campus, letter, search });
+      
+      indexItems = await coalescedQuery(
+        requestKey,
+        () => PerformanceOptimizer.getWithCache(
+          cacheKey,
+          () => QueryOptimizer.getIndexItems({
+            campus,
+            letter,
+            search
+          }),
+          {
+            priority: campus ? 'hot' : 'warm', // Campus queries are typically more popular
+            redisTtl: search ? 1800 : CACHE_TTL, // Shorter TTL for search queries (30 min vs 4 hours)
+            memoryTtl: 5 * 60 * 1000 // 5 minutes in memory for ultra-fast repeat requests
+          }
+        )
       );
     } else {
       // Direct query without caching for short searches
@@ -206,8 +250,13 @@ export async function GET(req: NextRequest) {
     
     dbQueryTime = performance.now() - startTime;
 
-    // Cache the results asynchronously (don't wait) - only if we should cache
-    if (cacheKey) {
+    // Store in fast cache for optimized queries (campus, letter, campus+letter)
+    if (fastCacheKey && indexItems.length > 0) {
+      fastCache.set(fastCacheKey, indexItems, 10 * 60 * 1000); // 10 minutes for fast cache
+    }
+
+    // Cache the results asynchronously (don't wait) - only if we should cache and not an optimized query
+    if (cacheKey && !isOptimizedQuery) {
       const cacheTTL = search ? 1800 : CACHE_TTL; // Shorter TTL for search queries
       timeCacheOperation(
         () => kv.set(cacheKey, indexItems, { ex: cacheTTL }),
@@ -249,8 +298,10 @@ export async function GET(req: NextRequest) {
         ...corsHeaders,
         'Content-Type': 'application/json',
         'Cache-Control': cacheKey 
-          ? 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400'
+          ? 'public, max-age=0, s-maxage=60, stale-while-revalidate=300'
           : 'no-cache, no-store, must-revalidate', // Don't cache short searches in browser
+        'CDN-Cache-Control': cacheKey ? 'max-age=3600' : 'max-age=0',
+        'Vercel-CDN-Cache-Control': cacheKey ? 'max-age=3600' : 'max-age=0',
         'X-Cache': cacheKey ? 'MISS' : 'SKIP',
         'X-Response-Time': `${metrics.responseTime}ms`,
         'X-DB-Time': `${dbQueryTime}ms`,
@@ -335,6 +386,9 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    // Invalidate fast cache for campus queries
+    fastCache.invalidatePattern(`fast:index`);
+    
     // Smart cache invalidation - clear related cache patterns
     const patterns = [
       `${CACHE_PREFIX}${campus}:${letter}:`,
@@ -434,6 +488,9 @@ export async function DELETE(req: NextRequest) {
     const deletedItem = await prisma.indexitem.delete({
       where: { id }
     });
+
+    // Invalidate fast cache
+    fastCache.invalidatePattern(`fast:index`);
 
     // Clear all related cache patterns
     const patterns = [
@@ -564,6 +621,9 @@ export async function PATCH(req: NextRequest) {
         campus: true
       }
     });
+
+    // Invalidate fast cache
+    fastCache.invalidatePattern(`fast:index`);
 
     // Smart cache invalidation - clear both old and new cache patterns
     const patterns = new Set([

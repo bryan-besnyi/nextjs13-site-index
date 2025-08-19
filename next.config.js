@@ -1,6 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Performance optimizations
+  experimental: {
+    webpackMemoryOptimizations: true,
+    optimizeCss: true,
+  },
+  // Enable compression
+  compress: true,
+  // Optimize images
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
+  // Reduce bundle size
+  productionBrowserSourceMaps: false,
   async headers() {
     return [
       {

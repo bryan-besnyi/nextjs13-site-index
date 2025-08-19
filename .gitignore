@@ -56,3 +56,10 @@ cypress/screenshots/
 link-check-*.json
 production-backup.json
 backup-viewer.html
+
+# Test scripts and benchmarks
+/test-scripts/
+benchmark*.js
+debug*.js
+test-*.js
+monitor-*.js

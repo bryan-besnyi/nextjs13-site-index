@@ -1,17 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { getDatabaseUrl, logDatabaseInfo, DATABASE_CONFIG } from './database-config';
+import { validateDatabaseSafety } from './database-safety';
 
-// Database environment validation
+// Database environment validation with safety checks
 function validateDatabaseEnvironment() {
-  const dbUrl = process.env.DATABASE_URL;
+  // Run comprehensive safety validation
+  const analysis = validateDatabaseSafety();
   
-  if (!dbUrl) {
-    throw new Error('DATABASE_URL not configured');
-  }
-  
-  // Prevent production DB in development
-  if (process.env.NODE_ENV === 'development' && dbUrl.includes('ep-') && dbUrl.includes('neon.tech')) {
-    console.warn('⚠️  Using Neon database in development. Ensure this is not production data.');
+  if (!analysis.isSafe) {
+    throw new Error('Database connection blocked for safety reasons');
   }
   
   // Log database configuration

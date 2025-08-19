@@ -80,17 +80,19 @@ export default async function AdminDataPage({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col h-full space-y-4">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Browse Index Items</h1>
-        <p className="text-muted-foreground mt-2">
+      <div className="flex-shrink-0">
+        <h1 className="text-2xl font-bold tracking-tight">Browse Index Items</h1>
+        <p className="text-muted-foreground text-sm">
           Manage and search through all index items
         </p>
       </div>
 
       {/* Data Table */}
-      <DataTableEnhanced initialData={initialData} />
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <DataTableEnhanced initialData={initialData} />
+      </div>
     </div>
   );
 }

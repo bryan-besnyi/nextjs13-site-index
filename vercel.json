@@ -2,5 +2,18 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/indexItems/route.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30,
+      "memory": 512
+    },
+    "src/app/api/*/route.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30,
+      "memory": 256
+    }
+  },
+  "crons": []
 }

@@ -11,11 +11,16 @@ const OneLoginSignInButton = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Check if we're in preview mode - client-side env vars need NEXT_PUBLIC_ prefix
-  const isPreviewMode = typeof window !== 'undefined' && 
-    (window.location.hostname.includes('vercel.app') || 
-     process.env.NODE_ENV === 'development');
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Handle client-side mounting to avoid hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+    const previewMode = window.location.hostname.includes('vercel.app') || 
+                       process.env.NODE_ENV === 'development';
+    setIsPreviewMode(previewMode);
+  }, []);
 
   // Check for authentication errors
   useEffect(() => {
@@ -117,7 +122,10 @@ const OneLoginSignInButton = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
             </svg>
-            <span>{isPreviewMode ? 'Continue to Preview (No Auth)' : 'Continue with MySMCCD'}</span>
+            <span>
+              {!isClient ? 'Continue with MySMCCD' : 
+               isPreviewMode ? 'Continue to Preview (No Auth)' : 'Continue with MySMCCD'}
+            </span>
           </>
         )}
       </button>

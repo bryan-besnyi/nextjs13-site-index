@@ -5,12 +5,25 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
 } from 'recharts';
-import { 
-  Activity, TrendingUp, Database, Server, RefreshCw, AlertCircle,
-  Zap, Clock, CheckCircle, XCircle
+import {
+  Activity,
+  Database,
+  Server,
+  RefreshCw,
+  AlertCircle,
+  Zap,
+  Clock,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 
 interface PerformanceMetrics {
@@ -55,15 +68,15 @@ export default function PerformancePage() {
       const response = await fetch('/api/admin/performance', {
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-        },
+          'Content-Type': 'application/json'
+        }
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch performance data');
       }
-      
+
       const data = await response.json();
       setMetrics(data.metrics);
       setEndpoints(data.endpoints);
@@ -71,7 +84,9 @@ export default function PerformancePage() {
       setLastUpdate(new Date());
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load performance data');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load performance data'
+      );
       console.error('Performance data fetch error:', err);
     } finally {
       setLoading(false);
@@ -80,7 +95,7 @@ export default function PerformancePage() {
 
   useEffect(() => {
     if (status === 'loading') return; // Don't fetch while session is loading
-    
+
     if (status === 'unauthenticated') {
       setError('Not authenticated');
       setLoading(false);
@@ -98,7 +113,9 @@ export default function PerformancePage() {
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">
-            {status === 'loading' ? 'Loading session...' : 'Loading performance data...'}
+            {status === 'loading'
+              ? 'Loading session...'
+              : 'Loading performance data...'}
           </p>
         </div>
       </div>
@@ -120,13 +137,37 @@ export default function PerformancePage() {
     );
   }
 
+  const hasNoData =
+    !metrics || (metrics.apiCalls === 0 && metrics.avgResponseTime === 0);
+
   return (
     <div className="space-y-8">
+      {/* Warning Banner for No Data */}
+      {hasNoData && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="h-5 w-5 text-amber-600" />
+            <div>
+              <h3 className="text-amber-800 font-semibold">
+                ⚠️ Limited Performance Data
+              </h3>
+              <p className="text-amber-700 text-sm mt-1">
+                Performance metrics are collected from real API usage over time.
+                Zero values indicate no recent activity has been recorded or
+                metrics collection is not fully active.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Performance Monitor</h1>
-          <p className="text-gray-600 mt-1">Real-time API and system performance metrics</p>
+          <p className="text-gray-600 mt-1">
+            Real-time API and system performance metrics
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <p className="text-sm text-gray-500">
@@ -149,24 +190,34 @@ export default function PerformancePage() {
             <div className="text-2xl font-bold">
               {metrics?.apiCalls.toLocaleString() || '0'}
             </div>
-            <p className="text-xs text-muted-foreground">Total requests today</p>
+            <p className="text-xs text-muted-foreground">
+              Total requests today
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg Response Time
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics?.avgResponseTime || 0}ms</div>
-            <p className="text-xs text-muted-foreground">Across all endpoints</p>
+            <div className="text-2xl font-bold">
+              {metrics?.avgResponseTime || 0}ms
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Across all endpoints
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cache Hit Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Cache Hit Rate
+            </CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -198,40 +249,58 @@ export default function PerformancePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">DB Queries</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  DB Queries
+                </CardTitle>
                 <Database className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{metrics.dbQueries}</div>
-                <p className="text-xs text-muted-foreground">Total queries today</p>
+                <p className="text-xs text-muted-foreground">
+                  Total queries today
+                </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Query Time</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Avg Query Time
+                </CardTitle>
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.avgDbTime || 0}ms</div>
-                <p className="text-xs text-muted-foreground">Database latency</p>
+                <div className="text-2xl font-bold">
+                  {metrics.avgDbTime || 0}ms
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Database latency
+                </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Connections</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Active Connections
+                </CardTitle>
                 <Server className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.activeConnections || 0}</div>
-                <p className="text-xs text-muted-foreground">Current DB connections</p>
+                <div className="text-2xl font-bold">
+                  {metrics.activeConnections || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Current DB connections
+                </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Memory Usage
+                </CardTitle>
                 <Server className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -259,16 +328,16 @@ export default function PerformancePage() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="responseTime" 
-                  stroke="#2563eb" 
+                <Line
+                  type="monotone"
+                  dataKey="responseTime"
+                  stroke="#2563eb"
                   name="Response Time (ms)"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="requests" 
-                  stroke="#10b981" 
+                <Line
+                  type="monotone"
+                  dataKey="requests"
+                  stroke="#10b981"
                   name="Requests"
                 />
               </LineChart>
@@ -297,14 +366,23 @@ export default function PerformancePage() {
               </thead>
               <tbody>
                 {endpoints.map((endpoint) => {
-                  const errorRate = endpoint.calls > 0 ? (endpoint.errors / endpoint.calls) * 100 : 0;
+                  const errorRate =
+                    endpoint.calls > 0
+                      ? (endpoint.errors / endpoint.calls) * 100
+                      : 0;
                   return (
                     <tr key={endpoint.endpoint} className="border-b">
-                      <td className="p-2 font-mono text-xs">{endpoint.endpoint}</td>
-                      <td className="text-right p-2">{endpoint.calls.toLocaleString()}</td>
+                      <td className="p-2 font-mono text-xs">
+                        {endpoint.endpoint}
+                      </td>
+                      <td className="text-right p-2">
+                        {endpoint.calls.toLocaleString()}
+                      </td>
                       <td className="text-right p-2">{endpoint.avgTime}ms</td>
                       <td className="text-right p-2">{endpoint.errors}</td>
-                      <td className="text-right p-2">{errorRate.toFixed(0)}%</td>
+                      <td className="text-right p-2">
+                        {errorRate.toFixed(0)}%
+                      </td>
                       <td className="text-center p-2">
                         {errorRate < 5 ? (
                           <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />

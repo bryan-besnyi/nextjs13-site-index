@@ -5,6 +5,7 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import AdminLayoutClient from '@/components/admin/AdminLayoutClient';
 import ErrorBoundary from '@/components/admin/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
+import authOptions from '@/app/api/auth/[...nextauth]/options';
 
 export const metadata = {
   title: 'Admin Dashboard | SMCCCD Site Index',
@@ -16,14 +17,16 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession();
+  // Skip auth check if bypass is enabled
+  const bypassAuth = process.env.BYPASS_AUTH === 'true';
   
-  // Check if we're in preview/development mode
-  const isPreviewMode = process.env.VERCEL_ENV === 'preview' || process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV === 'development';
-  
-  // Authentication check - only enforce in production
-  if (!session?.user?.email && process.env.NODE_ENV === 'production' && !isPreviewMode) {
-    redirect('/');
+  if (!bypassAuth) {
+    const session = await getServerSession(authOptions);
+    
+    // Authentication check for production
+    if (!session?.user?.email && process.env.NODE_ENV === 'production') {
+      redirect('/');
+    }
   }
   
   return (
