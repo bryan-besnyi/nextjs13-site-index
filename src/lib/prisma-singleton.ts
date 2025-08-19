@@ -4,6 +4,12 @@ import { validateDatabaseSafety } from './database-safety';
 
 // Database environment validation with safety checks
 function validateDatabaseEnvironment() {
+  // Skip validation during build
+  if (process.env.NEXT_PHASE === 'phase-production-build' || 
+      process.env.npm_lifecycle_event === 'build') {
+    return;
+  }
+  
   // Run comprehensive safety validation
   const analysis = validateDatabaseSafety();
   

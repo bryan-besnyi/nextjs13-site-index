@@ -18,6 +18,16 @@ export interface ActivityLogEntry {
 
 export class ActivityLogger {
   private static isEnabled(): boolean {
+    // Skip during build process
+    if (process.env.VERCEL_ENV === 'preview' && !process.env.DATABASE_URL) {
+      return false;
+    }
+    
+    // Skip during Next.js build
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return false;
+    }
+    
     // Only enable in development or if explicitly enabled
     return process.env.NODE_ENV === 'development' || process.env.ENABLE_ACTIVITY_LOGGING === 'true';
   }

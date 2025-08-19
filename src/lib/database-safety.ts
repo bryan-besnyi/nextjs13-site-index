@@ -141,8 +141,11 @@ export function validateDatabaseSafety(): DatabaseInfo {
     console.log('');
   }
 
-  // Throw error if unsafe in development
-  if (!analysis.isSafe && (process.env.NODE_ENV === 'development' || process.env.ENVIRONMENT_TYPE === 'test')) {
+  // Throw error if unsafe in development (but allow during build)
+  const isLocalDevelopment = process.env.NODE_ENV === 'development' && !process.env.VERCEL;
+  const isTestEnvironment = process.env.ENVIRONMENT_TYPE === 'test';
+  
+  if (!analysis.isSafe && (isLocalDevelopment || isTestEnvironment)) {
     const error = new Error(
       `UNSAFE DATABASE CONNECTION BLOCKED\n\n` +
       `Analysis: ${analysis.warnings.join('\n')}\n\n` +
