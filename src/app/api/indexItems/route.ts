@@ -14,7 +14,9 @@ const ratelimit = new Ratelimit({
 export async function GET(req: NextRequest) {
   try {
     const userAgent = req.headers.get('user-agent') || '';
-    const ip = req.ip ?? '127.0.0.1';
+    const forwardedFor = req.headers.get('x-forwarded-for');
+    const realIp = req.headers.get('x-real-ip');
+    const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
     const compositeKey = `${ip}:${userAgent}`;
 
     // Block outdated/suspicious User-Agent
@@ -167,7 +169,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // Apply rate limiting
-    const ip = req.ip ?? '127.0.0.1';
+    const forwardedFor = req.headers.get('x-forwarded-for');
+    const realIp = req.headers.get('x-real-ip');
+    const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
     const { success } = await ratelimit.limit(ip);
 
     if (!success) {
@@ -225,7 +229,9 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     // Apply rate limiting
-    const ip = req.ip ?? '127.0.0.1';
+    const forwardedFor = req.headers.get('x-forwarded-for');
+    const realIp = req.headers.get('x-real-ip');
+    const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
     const { success } = await ratelimit.limit(ip);
 
     if (!success) {

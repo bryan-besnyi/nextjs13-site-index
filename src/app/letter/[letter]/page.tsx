@@ -1,11 +1,12 @@
 import { prisma } from '@/lib/prisma';
 
-export default async function Page({ params }: { params: { letter: string } }) {
-  if (params.letter.length !== 1) {
+export default async function Page({ params }: { params: Promise<{ letter: string }> }) {
+  const { letter } = await params;
+  if (letter.length !== 1) {
     return <h1 className="text-center text-red-700 text-8xl">Invalid Entry</h1>;
   }
   const indexItems = await prisma.indexitem.findMany({
-    where: { letter: params.letter }
+    where: { letter: letter }
   });
   if (indexItems.length === 0) {
     return (
@@ -15,7 +16,7 @@ export default async function Page({ params }: { params: { letter: string } }) {
   return (
     <div className="container mx-auto">
       <h1 className="mt-16 text-xl text-center">
-        Results for: {params.letter.toUpperCase()}
+        Results for: {letter.toUpperCase()}
       </h1>
       <ul>
         {indexItems.map((indexItem) => (

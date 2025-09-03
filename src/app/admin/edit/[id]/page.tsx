@@ -10,14 +10,15 @@ const campusInfo = [
 ];
 
 interface AdminEditPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function AdminEditPage({
-  params: { id }
+  params
 }: AdminEditPageProps) {
+  const { id } = await params;
   const indexItem = await prisma.indexitem.findUnique({
     where: { id: Number(id) }
   });
