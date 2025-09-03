@@ -20,6 +20,7 @@ import toast from 'react-hot-toast';
 import { useState } from 'react';
 import { IndexItemFormData, CampusInfo, VALID_CAMPUSES } from '@/types';
 import { CreateIndexItemSchema } from '@/types/forms';
+import StatusMessage from '@/components/ui/status-message';
 
 const campusInfo: CampusInfo[] = [
   { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
@@ -140,37 +141,27 @@ const NewIndexItemForm: React.FC = () => {
 
   return (
     <Form {...form}>
-      {/* Success Message */}
-      {submitSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-            <p className="text-sm text-green-700">Index item created successfully!</p>
-          </div>
-        </div>
-      )}
+      <div className="space-y-6">
+        {/* Success Message */}
+        {submitSuccess && (
+          <StatusMessage
+            type="success"
+            message="Index item created successfully!"
+            onDismiss={() => setSubmitSuccess(false)}
+          />
+        )}
 
-      {/* Error Message */}
-      {submitError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <div>
-              <p className="text-sm text-red-700 font-medium">Failed to create index item</p>
-              <p className="text-sm text-red-600 mt-1">{submitError}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSubmitError(null)}
-            className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+        {/* Error Message */}
+        {submitError && (
+          <StatusMessage
+            type="error"
+            title="Failed to create index item"
+            message={submitError}
+            onDismiss={() => setSubmitError(null)}
+          />
+        )}
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="title"
@@ -216,20 +207,20 @@ const NewIndexItemForm: React.FC = () => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Campus</FormLabel>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {campusInfo.map((campus) => (
-                  <div key={campus.id} className="flex items-center">
+                  <div key={campus.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                     <input
                       id={campus.id}
                       type="radio"
                       value={campus.value}
                       checked={field.value === campus.value}
                       onChange={() => field.onChange(campus.value)}
-                      className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                     />
                     <label
                       htmlFor={campus.id}
-                      className="ml-3 text-sm font-medium leading-6 text-gray-900"
+                      className="ml-3 text-sm font-medium text-gray-900 cursor-pointer"
                     >
                       {campus.value}
                     </label>
@@ -240,8 +231,12 @@ const NewIndexItemForm: React.FC = () => {
             </FormItem>
           )}
         />
-        <div className="space-x-4">{submitButtons}</div>
+        
+        <div className="flex gap-4 pt-4 border-t">
+          {submitButtons}
+        </div>
       </form>
+      </div>
     </Form>
   );
 };

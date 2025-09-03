@@ -161,11 +161,11 @@ export default function PerformancePage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex justify-between items-center">
+      {/* Page Header */}
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Performance Monitor</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-semibold text-gray-900">Performance Monitor</h1>
+          <p className="text-sm text-gray-500 mt-1">
             Real-time API and system performance metrics
           </p>
         </div>

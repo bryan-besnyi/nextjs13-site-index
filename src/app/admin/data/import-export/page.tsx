@@ -10,10 +10,8 @@ export default function ImportExportPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Import/Export Data</h1>
-        <p className="text-muted-foreground mt-2">
-          Import index items from CSV/JSON files or export existing data
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900">Import/Export Data</h1>
+        <p className="text-sm text-gray-500 mt-1">Import index items from CSV/JSON files or export existing data</p>
       </div>
 
       <ImportExportClient />

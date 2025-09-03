@@ -101,7 +101,8 @@ export class CacheWarmer {
           title: true,
           letter: true,
           url: true,
-          campus: true
+          campus: true,
+          createdAt: true
         },
         orderBy: { title: 'asc' }
       });
@@ -131,7 +132,8 @@ export class CacheWarmer {
           title: true,
           letter: true,
           url: true,
-          campus: true
+          campus: true,
+          createdAt: true
         },
         orderBy: { title: 'asc' }
       });
@@ -161,7 +163,8 @@ export class CacheWarmer {
           title: true,
           letter: true,
           url: true,
-          campus: true
+          campus: true,
+          createdAt: true
         },
         orderBy: { title: 'asc' }
       });

@@ -14,11 +14,9 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 import { 
-  Database, RefreshCw, Trash2, Search, AlertCircle,
-  HardDrive, Zap, TrendingUp, Package, Filter
+  Database, RefreshCw, Trash2, Search, AlertCircle
 } from 'lucide-react';
 import { useCSRF } from '@/hooks/useCSRF';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CacheStats {
   totalKeys: number;
@@ -226,264 +224,197 @@ export default function CachePage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Cache Manager</h1>
-          <p className="text-gray-600 mt-1">Manage Vercel KV cache entries and monitor cache performance</p>
-          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>What is this?</strong> The cache stores API responses to make the site faster. 
-              Cache entries expire automatically (TTL = seconds until expiration, -1 = permanent).
-              You can delete cache entries to force fresh data loading.
-            </p>
-          </div>
+          <h1 className="text-2xl font-semibold text-gray-900">Cache Manager</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage cache entries and monitor performance</p>
         </div>
         <Button onClick={fetchCacheData} variant="outline" size="sm" aria-label="Refresh cache data">
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
         </Button>
       </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Keys</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalKeys || 0}</div>
-            <p className="text-xs text-muted-foreground">Cached API responses</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
-            <HardDrive className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.memoryUsage || '0 KB'}</div>
-            <p className="text-xs text-muted-foreground">Storage used by cache</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hit Rate</CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {((stats?.hitRate || 0) * 100).toFixed(0)}%
-            </div>
-            <p className="text-xs text-muted-foreground">Requests served from cache</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Miss Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {((stats?.missRate || 0) * 100).toFixed(0)}%
-            </div>
-            <p className="text-xs text-muted-foreground">Requests needing fresh data</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Evictions</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.evictions || 0}</div>
-            <p className="text-xs text-muted-foreground">Items removed due to limits</p>
-          </CardContent>
-        </Card>
+      
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center">
+          <AlertCircle className="h-5 w-5 text-blue-500 mr-2" />
+          <p className="text-sm text-blue-800">
+            The cache stores API responses to make the site faster. You can clear specific cache entries to force fresh data loading.
+          </p>
+        </div>
       </div>
 
-      {/* Quick Actions for Non-Technical Users */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Quick Actions by Campus
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-4 gap-4 mb-4">
-            {[
-              { key: 'csm', name: 'College of San Mateo', color: 'bg-blue-500' },
-              { key: 'skyline', name: 'Skyline College', color: 'bg-green-500' },
-              { key: 'canada', name: 'Cañada College', color: 'bg-purple-500' },
-              { key: 'district', name: 'District Office', color: 'bg-orange-500' }
-            ].map((campus) => (
-              <Button
-                key={campus.key}
-                variant="outline"
-                className="h-auto p-4 flex flex-col items-start"
-                onClick={() => {
-                  setPatternInput(`*${campus.name}*`);
-                  setShowPatternModal(true);
-                }}
-              >
-                <div className={`w-3 h-3 rounded-full ${campus.color} mb-2`}></div>
-                <div className="text-left">
-                  <div className="font-semibold text-sm">{campus.name}</div>
-                  <div className="text-xs text-gray-500">Clear {campus.name.split(' ')[0]} cache</div>
+      {/* Summary Stats */}
+      <div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-blue-600" />
+                Cache Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Total Keys:</span>
+                  <span className="font-semibold">{stats?.totalKeys || 0}</span>
                 </div>
-              </Button>
-            ))}
-          </div>
-          <div className="text-sm text-blue-800">
-            <p><strong>💡 Tip:</strong> Use these buttons to clear cache for a specific campus when you update content on that campus&apos;s website.</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Cache Entries Help */}
-      <Card className="bg-gray-50 border-gray-200">
-        <CardContent className="pt-6">
-          <div className="grid md:grid-cols-3 gap-6 text-sm">
-            <div>
-              <h4 className="font-semibold mb-2">Understanding Cache Entries:</h4>
-              <ul className="space-y-1 text-gray-600">
-                <li><strong>Key:</strong> Unique identifier for cached data</li>
-                <li><strong>Size:</strong> Memory used by this entry</li>
-                <li><strong>TTL:</strong> Seconds until expiration (-1 = never expires)</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">Common Cache Types:</h4>
-              <ul className="space-y-1 text-gray-600">
-                <li><strong>index:*</strong> Search results by campus/letter</li>
-                <li><strong>api:*</strong> API response caching</li>
-                <li><strong>alerts:*</strong> Performance monitoring data</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">What do the actions do?</h4>
-              <ul className="space-y-1 text-gray-600">
-                <li><strong>🗑️ Individual Delete:</strong> Removes one cache entry</li>
-                <li><strong>Bulk Delete:</strong> Removes selected entries</li>
-                <li><strong>Pattern Delete:</strong> Removes entries matching a pattern (e.g., api:*)</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Cache Entries Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Cache Entries</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Search cache keys..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
-                />
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Memory Used:</span>
+                  <span className="font-semibold">{stats?.memoryUsage || '0 KB'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Hit Rate:</span>
+                  <span className="font-semibold text-green-600">
+                    {((stats?.hitRate || 0) * 100).toFixed(0)}%
+                  </span>
+                </div>
               </div>
-              <Select value={campusFilter} onValueChange={setCampusFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by campus" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Campuses</SelectItem>
-                  <SelectItem value="csm">College of San Mateo</SelectItem>
-                  <SelectItem value="skyline">Skyline College</SelectItem>
-                  <SelectItem value="canada">Cañada College</SelectItem>
-                  <SelectItem value="district">District Office</SelectItem>
-                </SelectContent>
-              </Select>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Clear Actions</CardTitle>
+              <p className="text-sm text-muted-foreground">Clear cache by campus</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'csm', name: 'College of San Mateo' },
+                  { key: 'skyline', name: 'Skyline College' },
+                  { key: 'canada', name: 'Cañada College' },
+                  { key: 'district', name: 'District Office' }
+                ].map((campus) => (
+                  <Button
+                    key={campus.key}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPatternInput(`*${campus.name}*`);
+                      setShowPatternModal(true);
+                    }}
+                    className="text-left justify-start h-auto p-3"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">{campus.name}</div>
+                      <div className="text-xs text-gray-500">Clear cache</div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Search & Clear</CardTitle>
+              <p className="text-sm text-muted-foreground">Clear specific cache entries</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Search cache keys..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPatternModal(true)}
+                  className="w-full"
+                >
+                  Clear by Pattern
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Cache Entries Table - Simplified */}
+      <div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Cache Entries</CardTitle>
+                <p className="text-sm text-muted-foreground">{filteredEntries.length} entries found</p>
+              </div>
               {selectedKeys.size > 0 && (
                 <Button
                   variant="destructive"
                   size="sm"
                   onClick={() => setShowInvalidateModal(true)}
                 >
-                  Invalidate Selected ({selectedKeys.size})
+                  Clear Selected ({selectedKeys.size})
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPatternModal(true)}
-              >
-                Invalidate by Pattern
-              </Button>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">
+          </CardHeader>
+          <CardContent>
+        <div className="space-y-4">
+          {filteredEntries.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No cache entries found matching your search.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {filteredEntries.slice(0, 50).map((entry) => (
+                <div key={entry.key} className="flex items-center justify-between p-3 border rounded-md">
+                  <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
-                      checked={selectedKeys.size === filteredEntries.length && filteredEntries.length > 0}
-                      onChange={toggleSelectAll}
-                      aria-label="Select all entries"
+                      checked={selectedKeys.has(entry.key)}
+                      onChange={(e) => {
+                        const newSelected = new Set(selectedKeys);
+                        if (e.target.checked) {
+                          newSelected.add(entry.key);
+                        } else {
+                          newSelected.delete(entry.key);
+                        }
+                        setSelectedKeys(newSelected);
+                      }}
+                      className="rounded"
                     />
-                  </th>
-                  <th className="text-left p-2">Key</th>
-                  <th className="text-right p-2">Size</th>
-                  <th className="text-right p-2">TTL (seconds)</th>
-                  <th className="text-center p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEntries.map((entry) => (
-                  <tr key={entry.key} className="border-b">
-                    <td className="p-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedKeys.has(entry.key)}
-                        onChange={(e) => {
-                          const newSelected = new Set(selectedKeys);
-                          if (e.target.checked) {
-                            newSelected.add(entry.key);
-                          } else {
-                            newSelected.delete(entry.key);
-                          }
-                          setSelectedKeys(newSelected);
-                        }}
-                      />
-                    </td>
-                    <td className="p-2 font-mono text-xs">{entry.key}</td>
-                    <td className="text-right p-2">{entry.size}</td>
-                    <td className="text-right p-2">{entry.ttl}</td>
-                    <td className="text-center p-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setInvalidatingKey(entry.key);
-                          setShowInvalidateModal(true);
-                        }}
-                        aria-label={`Invalidate ${entry.key}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    <div>
+                      <div className="font-mono text-sm text-gray-900">{entry.key}</div>
+                      <div className="text-xs text-gray-500">
+                        {entry.size} • TTL: {entry.ttl === -1 ? 'Permanent' : `${entry.ttl}s`}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setInvalidatingKey(entry.key);
+                      setShowInvalidateModal(true);
+                    }}
+                    aria-label={`Clear ${entry.key}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              ))}
+              {filteredEntries.length > 50 && (
+                <div className="text-center py-2 text-sm text-gray-500">
+                  Showing first 50 entries. Use search to narrow results.
+                </div>
+              )}
+            </div>
+          )}
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Invalidate Confirmation Modal */}
       <Dialog open={showInvalidateModal} onOpenChange={setShowInvalidateModal}>

@@ -39,54 +39,52 @@ export default async function AdminDataPage({
       <div className="space-y-6">
         {/* Page Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Browse Index Items</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage and search through all index items
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">Browse Index Items</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage and search through all index items</p>
         </div>
 
         {/* Error Display */}
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <CardTitle className="text-xl text-red-800">Failed to Load Data</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-red-700">{errorMessage}</p>
-            <div className="space-y-2">
-              <p className="text-sm text-red-600">This could be due to:</p>
-              <ul className="text-sm text-red-600 space-y-1">
-                <li>• Database connection issues</li>
-                <li>• Server overload or maintenance</li>
-                <li>• Network connectivity problems</li>
-              </ul>
-            </div>
-            <div className="flex justify-center">
-              <ErrorActions />
-            </div>
-            <p className="text-xs text-red-500 pt-2 border-t border-red-200">
-              If this persists, contact{' '}
-              <a 
-                href="mailto:webmaster@smccd.edu"
-                className="text-red-600 hover:underline font-medium"
-              >
-                Web Services
-              </a>
-            </p>
-          </CardContent>
-        </Card>
+        <div>
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <CardTitle className="text-xl text-red-800">Failed to Load Data</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-red-700">{errorMessage}</p>
+              <div className="space-y-2">
+                <p className="text-sm text-red-600">This could be due to:</p>
+                <ul className="text-sm text-red-600 space-y-1">
+                  <li>• Database connection issues</li>
+                  <li>• Server overload or maintenance</li>
+                  <li>• Network connectivity problems</li>
+                </ul>
+              </div>
+              <div className="flex justify-center">
+                <ErrorActions />
+              </div>
+              <p className="text-xs text-red-500 pt-2 border-t border-red-200">
+                If this persists, contact{' '}
+                <a 
+                  href="mailto:webmaster@smccd.edu"
+                  className="text-red-600 hover:underline font-medium"
+                >
+                  Web Services
+                </a>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col h-full space-y-6">
       {/* Page Header */}
-      <div className="flex-shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight">Browse Index Items</h1>
-        <p className="text-muted-foreground text-sm">
-          Manage and search through all index items
-        </p>
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900">Browse Index Items</h1>
+        <p className="text-sm text-gray-500 mt-1">Manage and search through all index items</p>
       </div>
 
       {/* Data Table */}

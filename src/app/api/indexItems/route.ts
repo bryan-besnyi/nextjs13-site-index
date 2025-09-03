@@ -48,6 +48,7 @@ const ALLOWED_ORIGINS = [
   'https://collegeofsanmateo.edu',
   'https://canadacollege.edu', 
   'https://skylinecollege.edu',
+  'https://smccd.edu/portal', // SMCCD Portal
   process.env.NEXTAUTH_URL || 'https://localhost:3000', // Production site from env
   'https://site-index-git-develop-smcccd.vercel.app', // Preview deployment
   ...(process.env.NODE_ENV === 'development' ? [
@@ -230,7 +231,8 @@ export async function GET(req: NextRequest) {
           () => QueryOptimizer.getIndexItems({
             campus,
             letter,
-            search
+            search,
+            includeCreatedAt: true
           }),
           {
             priority: campus ? 'hot' : 'warm', // Campus queries are typically more popular
@@ -244,7 +246,8 @@ export async function GET(req: NextRequest) {
       indexItems = await QueryOptimizer.getIndexItems({
         campus,
         letter,
-        search
+        search,
+        includeCreatedAt: true
       });
     }
     

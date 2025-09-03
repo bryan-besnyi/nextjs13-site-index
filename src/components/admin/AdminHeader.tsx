@@ -58,20 +58,8 @@ export default function AdminHeader({ onMenuClick, isMobileMenuOpen, onCommandPa
           )}
         </Button>
 
-        {/* Command palette trigger */}
-        <Button
-          variant="outline"
-          className="flex-1 md:flex-none md:w-80 justify-between text-sm text-gray-500 border-gray-200"
-          onClick={openCommandPalette}
-        >
-          <span className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            Search or run commands...
-          </span>
-          <kbd className="pointer-events-none hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-gray-100 px-1.5 font-mono text-[10px] font-medium text-gray-600">
-            <span className="text-xs">⌘</span>K
-          </kbd>
-        </Button>
+        {/* Spacer to push right side actions to the right */}
+        <div className="flex-1" />
 
         {/* Right side actions */}
         <div className="ml-auto flex items-center gap-2">

@@ -119,224 +119,213 @@ export default async function AdminDashboardPage() {
   const successfulRequests = Math.round(totalAPIRequests * (1 - errorRate / 100));
 
   return (
-    <div className="space-y-10 lg:space-y-12">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900">Admin Dashboard</h1>
+        <p className="text-sm text-gray-500 mt-1">SMCCCD Site Index Management System</p>
+      </div>
+      
       {/* Error banner for partial data */}
       {metrics.error && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-orange-800">
-              <AlertCircle className="h-5 w-5" />
-              <div>
-                <p className="font-medium">Dashboard partially loaded</p>
-                <p className="text-sm text-orange-700">
-                  Some metrics may be unavailable due to: {metrics.error}
-                </p>
-              </div>
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-orange-500 mr-2" />
+            <div>
+              <p className="text-sm font-medium text-orange-800">Dashboard partially loaded</p>
+              <p className="text-sm text-orange-700">{metrics.error}</p>
             </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Page Header with gradient background */}
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white shadow-xl">
-        <div className="relative z-10">
-          <h1 className="text-4xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="mt-2 text-lg opacity-90">
-            Welcome to the SMCCCD Site Index Management System
-          </p>
-          <div className="mt-4 flex gap-2 text-sm">
-            <span className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1">
-              <CheckCircle className="h-4 w-4" />
-              System Operational
-            </span>
-            <span className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1">
-              <Clock className="h-4 w-4" />
-              {new Date().toLocaleDateString()}
-            </span>
           </div>
         </div>
-        <div className="absolute right-0 top-0 -mt-4 -mr-4 h-40 w-40 rounded-full bg-white/10" />
-        <div className="absolute right-20 bottom-0 -mb-8 h-32 w-32 rounded-full bg-white/10" />
-      </div>
+      )}
 
       {/* Metrics Grid */}
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-        <MetricsCard
-          title="Total Index Items"
-          value={metrics.totalItems.toLocaleString()}
-          description="Across all campuses"
-          icon={Database}
-        />
-        
-        <MetricsCard
-          title="API Response Time"
-          value={`${metrics.performanceMetrics?.averageResponseTime?.toFixed(0) || 'N/A'}ms`}
-          description="Average last 24h"
-          icon={Gauge}
-        />
-        
-        <MetricsCard
-          title="Cache Hit Rate"
-          value={`${metrics.cacheStats.hitRate.toFixed(1)}%`}
-          description={`${metrics.cacheStats.cachedRequests.toLocaleString()} cached requests`}
-          icon={TrendingUp}
-        />
-        
-        <MetricsCard
-          title="System Health"
-          value="Operational"
-          description="All systems running normally"
-          icon={Activity}
-          className="border-green-200"
-        />
+      <div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Index Items</CardTitle>
+              <Database className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metrics.totalItems.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Across all campuses</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">API Response Time</CardTitle>
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {metrics.performanceMetrics?.averageResponseTime?.toFixed(0) || 'N/A'}ms
+              </div>
+              <p className="text-xs text-muted-foreground">Average last 24h</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Cache Hit Rate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metrics.cacheStats.hitRate.toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground">{metrics.cacheStats.cachedRequests.toLocaleString()} cached</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">System Health</CardTitle>
+              <Activity className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">Operational</div>
+              <p className="text-xs text-muted-foreground">All systems normal</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Quick Actions and Campus Distribution */}
-      <div className="grid gap-8 md:grid-cols-2">
-        {/* Quick Actions */}
-        <QuickActions />
+      <div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Quick Actions */}
+          <QuickActions />
 
-        {/* Campus Distribution */}
-        <Card className="relative overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-blue-600" />
-              Items by Campus
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">Distribution across SMCCCD locations</p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-5">
-              {metrics.itemsByCampus.map((campus, index) => {
-                const percentage = (campus._count / metrics.totalItems) * 100;
-                const colors = [
-                  'from-blue-500 to-blue-600',
-                  'from-indigo-500 to-indigo-600',
-                  'from-purple-500 to-purple-600',
-                  'from-teal-500 to-teal-600'
-                ];
-                return (
-                  <div key={campus.campus} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900">{campus.campus}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-700">{campus._count}</span>
-                        <span className="text-xs text-gray-500">({percentage.toFixed(1)}%)</span>
+          {/* Campus Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-blue-600" />
+                Items by Campus
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Distribution across SMCCCD locations</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {metrics.itemsByCampus.map((campus, index) => {
+                  const percentage = (campus._count / metrics.totalItems) * 100;
+                  return (
+                    <div key={campus.campus} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-900">{campus.campus}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-700">{campus._count}</span>
+                          <span className="text-xs text-gray-500">({percentage.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                      <div className="relative w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="relative w-full bg-gray-200 rounded-full h-3 shadow-inner">
-                      <div
-                        className={`bg-gradient-to-r ${colors[index % colors.length]} h-3 rounded-full transition-all duration-1000 ease-out shadow-sm`}
-                        style={{ width: `${percentage}%` }}
-                      >
-                        <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Recent Activity & System Status */}
-      <div className="grid gap-8 lg:grid-cols-2">
-        <Card className="relative overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-green-600" />
-              Recent Activity
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">System activity in the last 7 days</p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 p-3 rounded-lg bg-green-50 border border-green-200">
-                <div className="rounded-full bg-green-100 p-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-green-900">New Content Added</p>
-                  <p className="text-sm text-green-700">
-                    {metrics.recentItems} new items added in the last 7 days
-                  </p>
-                </div>
-              </div>
-              
-              {metrics.performanceMetrics && (
-                <>
-                  <div className="flex items-start gap-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                    <div className="rounded-full bg-blue-100 p-2">
-                      <Activity className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-blue-900">API Activity</p>
-                      <p className="text-sm text-blue-700">
-                        {metrics.performanceMetrics.totalRequests.toLocaleString()} requests processed today
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4 p-3 rounded-lg bg-orange-50 border border-orange-200">
-                    <div className="rounded-full bg-orange-100 p-2">
-                      <Gauge className="h-4 w-4 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-orange-900">Performance Monitor</p>
-                      <p className="text-sm text-orange-700">
-                        {metrics.performanceMetrics.slowQueries} slow queries detected
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* System Health Overview */}
-        <Card className="relative overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              System Health
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">Current system status and metrics</p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
-                  <div className="text-2xl font-bold text-green-700">99.9%</div>
-                  <div className="text-xs text-green-600 font-medium">Uptime</div>
-                </div>
-                <div className="text-center p-3 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200">
-                  <div className="text-2xl font-bold text-blue-700">{successfulRequests.toLocaleString()}</div>
-                  <div className="text-xs text-blue-600 font-medium">Successful Requests</div>
-                </div>
-              </div>
-              
+      <div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-green-600" />
+                Recent Activity
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">System activity in the last 7 days</p>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Database Connection</span>
-                  <span className="flex items-center gap-1 text-green-600 font-medium">
-                    <CheckCircle className="h-3 w-3" />
-                    Healthy
-                  </span>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-green-900">New Content Added</p>
+                    <p className="text-sm text-green-700">
+                      {metrics.recentItems} new items added in the last 7 days
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Cache Performance</span>
-                  <span className="font-medium text-blue-600">{metrics.cacheStats.hitRate}% hit rate</span>
+                
+                {metrics.performanceMetrics && (
+                  <>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                      <Activity className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-blue-900">API Activity</p>
+                        <p className="text-sm text-blue-700">
+                          {metrics.performanceMetrics.totalRequests.toLocaleString()} requests processed today
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 border border-orange-200">
+                      <Gauge className="h-5 w-5 text-orange-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-orange-900">Performance Monitor</p>
+                        <p className="text-sm text-orange-700">
+                          {metrics.performanceMetrics.slowQueries} slow queries detected
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* System Health Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                System Health
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Current system status and metrics</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="text-2xl font-bold text-green-600">99.9%</div>
+                    <div className="text-xs text-green-600 font-medium">Uptime</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="text-2xl font-bold text-blue-600">{successfulRequests.toLocaleString()}</div>
+                    <div className="text-xs text-blue-600 font-medium">Successful Requests</div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Error Rate</span>
-                  <span className="font-medium text-green-600">&lt;0.1%</span>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Database Connection</span>
+                    <span className="flex items-center gap-1 text-green-600 font-medium">
+                      <CheckCircle className="h-3 w-3" />
+                      Healthy
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Cache Performance</span>
+                    <span className="font-medium text-blue-600">{metrics.cacheStats.hitRate.toFixed(1)}% hit rate</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Error Rate</span>
+                    <span className="font-medium text-green-600">&lt;0.1%</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
