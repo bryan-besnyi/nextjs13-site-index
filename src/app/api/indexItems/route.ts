@@ -11,6 +11,17 @@ const ratelimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(5, '10 s')
 });
 
+// Trusted origins whitelist
+const TRUSTED_ORIGINS = [
+  'https://smccd.edu',
+  'https://www.smccd.edu',
+  'https://smccd.edu/portal',
+  'https://collegeofsanmateo.edu',
+  'https://canadacollege.edu',
+  'https://skylinecollege.edu',
+  process.env.NEXTAUTH_URL || 'http://localhost:3000'
+];
+
 export async function GET(req: NextRequest) {
   try {
     const userAgent = req.headers.get('user-agent') || '';
@@ -18,37 +29,42 @@ export async function GET(req: NextRequest) {
     const realIp = req.headers.get('x-real-ip');
     const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
     const compositeKey = `${ip}:${userAgent}`;
+    const origin = req.headers.get('origin');
+    const isTrustedOrigin = origin && TRUSTED_ORIGINS.includes(origin);
 
-    // Block outdated/suspicious User-Agent
-    const blockedUserAgents = [
-      'MSIE 7.0',
-      'Windows NT 5.1',
-      'MSIE 6.0',
-      'Windows NT 5.0',
-      'Mozilla/4.0',
-      'curl',
-      'wget',
-      'python-requests',
-      'httpclient',
-      'libwww-perl',
-      'Go-http-client',
-      'Java/',
-      'Apache-HttpClient',
-      'Scrapy',
-      'bot',
-      'crawler',
-      'spider'
-    ];
-    // Block empty or suspicious User-Agents
-    if (
-      !userAgent ||
-      blockedUserAgents.some((ua) => userAgent.toLowerCase().includes(ua))
-    ) {
-      console.log(`Blocked IP: ${ip}, User-Agent: ${userAgent}`);
-      return new NextResponse(JSON.stringify({ error: 'Blocked User-Agent' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    // Skip user-agent checks for trusted origins
+    if (!isTrustedOrigin) {
+      // Block outdated/suspicious User-Agent
+      const blockedUserAgents = [
+        'MSIE 7.0',
+        'Windows NT 5.1',
+        'MSIE 6.0',
+        'Windows NT 5.0',
+        'Mozilla/4.0',
+        'curl',
+        'wget',
+        'python-requests',
+        'httpclient',
+        'libwww-perl',
+        'Go-http-client',
+        'Java/',
+        'Apache-HttpClient',
+        'Scrapy',
+        'bot',
+        'crawler',
+        'spider'
+      ];
+      // Block empty or suspicious User-Agents
+      if (
+        !userAgent ||
+        blockedUserAgents.some((ua) => userAgent.toLowerCase().includes(ua))
+      ) {
+        console.log(`Blocked IP: ${ip}, User-Agent: ${userAgent}`);
+        return new NextResponse(JSON.stringify({ error: 'Blocked User-Agent' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // Apply rate limiting
@@ -144,10 +160,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Get origin and check against whitelist
+    const requestOrigin = req.headers.get('origin');
+    const allowedOrigin = requestOrigin && TRUSTED_ORIGINS.includes(requestOrigin) ? requestOrigin : '*';
+
     return new NextResponse(JSON.stringify(indexItems), {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': allowedOrigin,
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Cache-Control':
