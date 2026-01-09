@@ -18,4 +18,9 @@ model indexitem {
   campus    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([campus])
+  @@index([letter])
+  @@index([campus, letter])
+  @@index([title])
 }

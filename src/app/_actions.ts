@@ -2,9 +2,13 @@
 import {
   createIndexItem,
   updateIndexItem,
-  deleteIndexItem
+  deleteIndexItem,
+  searchIndexItems as searchFromLib
 } from '../lib/indexItems';
 import { revalidatePath } from 'next/cache';
+import { kv } from '@vercel/kv';
+
+const isDev = process.env.NODE_ENV === 'development';
 
 export async function createIndexItemAction(
   title: string,
@@ -22,6 +26,9 @@ export async function createIndexItemAction(
     console.error(error);
     return { error };
   } else {
+    // Invalidate cache
+    const keys = await kv.keys(`index:${campus}:*`);
+    if (keys.length > 0) await kv.del(...keys);
     revalidatePath('/indexItems');
     return { newIndexItem };
   }
@@ -45,14 +52,17 @@ export async function updateIndexItemAction(
     console.error(error);
     return { error };
   } else {
+    // Invalidate cache
+    const keys = await kv.keys(`index:${campus}:*`);
+    if (keys.length > 0) await kv.del(...keys);
     revalidatePath('/indexItems');
     return { updatedItem };
   }
 }
 
 export async function deleteIndexItemAction(id: string) {
-  console.log(`ACTION: Attempting to delete item with ID: ${id}`);
-  const numericId = parseInt(id, 10); // Convert the id to a number
+  if (isDev) console.log(`ACTION: Attempting to delete item with ID: ${id}`);
+  const numericId = parseInt(id, 10);
   if (isNaN(numericId)) {
     console.error('Invalid ID:', id);
     throw new Error(`Invalid ID: ${id}`);
@@ -63,7 +73,12 @@ export async function deleteIndexItemAction(id: string) {
       console.error('Error in deleteIndexItemAction:', error);
       throw error;
     }
-    console.log('Deleted item in action:', deletedItem);
+    if (isDev) console.log('Deleted item in action:', deletedItem);
+    // Invalidate cache
+    if (deletedItem) {
+      const keys = await kv.keys(`index:${deletedItem.campus}:*`);
+      if (keys.length > 0) await kv.del(...keys);
+    }
     revalidatePath('/admin');
     return { deletedItem };
   } catch (error) {
@@ -72,8 +87,12 @@ export async function deleteIndexItemAction(id: string) {
   }
 }
 
-export async function searchIndexItems(query: string) {
-  const response = await fetch(`/api/indexItems?q=${query}`);
-  const { results } = await response.json();
-  return results;
+export async function searchIndexItems(query: string, campus?: string) {
+  // Use the lib function directly instead of fetch (server action can't use relative URLs)
+  const { results, error } = await searchFromLib(query, campus);
+  if (error) {
+    console.error('Search error:', error);
+    return [];
+  }
+  return results || [];
 }

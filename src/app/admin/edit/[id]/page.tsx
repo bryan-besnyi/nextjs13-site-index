@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
+import { kv } from '@vercel/kv';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
 const campusInfo = [
   { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
@@ -20,13 +20,20 @@ export default async function AdminEditPage({
 }: AdminEditPageProps) {
   const { id } = await params;
   const indexItem = await prisma.indexitem.findUnique({
-    where: { id: Number(id) }
+    where: { id: Number(id) },
+    select: {
+      id: true,
+      title: true,
+      url: true,
+      letter: true,
+      campus: true
+    }
   });
   if (!indexItem) {
     return <h1 className="text-red-700">No Item Found</h1>;
   }
 
-  async function updateIndexItemAction(formData: FormData): Promise<Response> {
+  async function updateIndexItemAction(formData: FormData): Promise<void> {
     'use server';
 
     const title = formData.get('title') as string;
@@ -43,6 +50,16 @@ export default async function AdminEditPage({
         campus
       }
     });
+
+    // Invalidate cache for both old and new campus (in case campus changed)
+    const oldCampus = indexItem?.campus || '';
+    const patterns = [`index:${oldCampus}:*`, `index:${campus}:*`];
+    for (const pattern of patterns) {
+      const keys = await kv.keys(pattern);
+      if (keys.length > 0) {
+        await kv.del(...keys);
+      }
+    }
 
     redirect('/admin');
   }

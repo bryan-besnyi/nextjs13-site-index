@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { kv } from '@vercel/kv';
 
+const isDev = process.env.NODE_ENV === 'development';
 const REQUESTS_PER_WINDOW = 20;
 const WINDOW_SIZE_IN_SECONDS = 30;
 
@@ -14,7 +15,7 @@ const ratelimit = new Ratelimit({
   )
 });
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
   // Add security headers
@@ -38,7 +39,7 @@ export async function middleware(request: NextRequest) {
     const ip =
       forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
 
-    console.log(`Request from IP: ${ip}`);
+    if (isDev) console.log(`Request from IP: ${ip}`);
 
     // Skip rate limiting for localhost in development
     if (process.env.NODE_ENV === 'development' && ip === '127.0.0.1') {

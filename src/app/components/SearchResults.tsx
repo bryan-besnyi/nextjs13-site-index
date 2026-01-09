@@ -28,6 +28,16 @@ const SearchResults = () => {
   const [searchResults, setSearchResults] = useState<SearchResultType[]>([]);
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
   const [selectedCampus, setSelectedCampus] = useState('');
+  const [listHeight, setListHeight] = useState(500); // Default height for SSR
+
+  useEffect(() => {
+    // Set height after mount (window is available)
+    setListHeight(window.innerHeight - 375);
+
+    const handleResize = () => setListHeight(window.innerHeight - 375);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchAllItems();
@@ -181,7 +191,7 @@ const SearchResults = () => {
             getClassNamesFor={getClassNamesFor}
           />
           <List
-            height={window.innerHeight - 375}
+            height={listHeight}
             itemCount={searchResults.length}
             itemSize={50}
             width="100%"

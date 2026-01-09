@@ -34,12 +34,12 @@ const authOptions: AuthOptions = {
     async session({ session, token }) {
       session.user.name = token.name;
       session.user.email = token.email;
-      console.log('Session callback - session:', session);
+      if (process.env.NODE_ENV === 'development') console.log('Session callback - session:', session);
 
       return session;
     }
   },
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET
 };
 

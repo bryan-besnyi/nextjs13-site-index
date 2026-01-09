@@ -1,12 +1,22 @@
 import { prisma } from '@/lib/prisma';
 
+export const revalidate = 3600; // Revalidate every hour (ISR)
+
 export default async function Page({ params }: { params: Promise<{ letter: string }> }) {
   const { letter } = await params;
   if (letter.length !== 1) {
     return <h1 className="text-center text-red-700 text-8xl">Invalid Entry</h1>;
   }
   const indexItems = await prisma.indexitem.findMany({
-    where: { letter: letter }
+    where: { letter: letter },
+    select: {
+      id: true,
+      title: true,
+      url: true,
+      letter: true,
+      campus: true
+    },
+    orderBy: { title: 'asc' }
   });
   if (indexItems.length === 0) {
     return (

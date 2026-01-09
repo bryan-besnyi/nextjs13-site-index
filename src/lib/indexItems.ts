@@ -46,7 +46,15 @@ export async function searchIndexItems(query: string, campus?: string) {
     const results = await prisma.indexitem.findMany({
       where: {
         AND: conditions
-      }
+      },
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        letter: true,
+        campus: true
+      },
+      orderBy: { title: 'asc' }
     });
 
     return { results };
@@ -63,7 +71,14 @@ export async function searchIndexItems(query: string, campus?: string) {
 export async function getIndexItemById(id: string) {
   try {
     const indexItem = await prisma.indexitem.findUnique({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        letter: true,
+        campus: true
+      }
     });
 
     return { indexItem };
@@ -126,6 +141,13 @@ export async function updateIndexItem(
         url: url,
         letter: letter,
         campus: campus
+      },
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        letter: true,
+        campus: true
       }
     });
     return { updatedItem };
@@ -142,9 +164,15 @@ export async function updateIndexItem(
 export async function deleteIndexItem(id: number) {
   try {
     const deletedItem = await prisma.indexitem.delete({
-      where: { id: id }
+      where: { id: id },
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        letter: true,
+        campus: true
+      }
     });
-    console.log('Deleted item:', deletedItem);
     return { deletedItem };
   } catch (error) {
     console.error('Error in deleteIndexItem:', error);
