@@ -15,7 +15,7 @@ const ratelimit = new Ratelimit({
   )
 });
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Add security headers
