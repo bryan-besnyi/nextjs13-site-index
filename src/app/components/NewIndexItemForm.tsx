@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createIndexItemAction } from '../_actions';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 import {
   Form,
   FormField,
@@ -41,6 +43,7 @@ interface FormValues {
 
 const NewIndexItemForm: React.FC = () => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -53,21 +56,26 @@ const NewIndexItemForm: React.FC = () => {
 
   const onSubmit: SubmitHandler<FormValues> = async (data, event) => {
     const submitType = (event?.nativeEvent as any).submitter.name;
-    await createIndexItemAction(data.title, data.url, data.letter, data.campus);
-    if (submitType === 'addAndContinue') {
-      form.reset();
-    } else {
-      router.push('/admin');
+    setLoading(true);
+    try {
+      await createIndexItemAction(data.title, data.url, data.letter, data.campus);
+      if (submitType === 'addAndContinue') {
+        form.reset();
+      } else {
+        router.push('/admin');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const submitButtons = (
     <>
-      <Button type="submit" name="addAndFinish">
-        Add Index Item
+      <Button type="submit" name="addAndFinish" disabled={loading}>
+        {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : 'Add Index Item'}
       </Button>
-      <Button type="submit" name="addAndContinue">
-        Add Index Item and Add Another
+      <Button type="submit" name="addAndContinue" disabled={loading}>
+        {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : 'Add Index Item and Add Another'}
       </Button>
     </>
   );

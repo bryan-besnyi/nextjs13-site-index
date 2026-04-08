@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { searchIndexItems } from '@/lib/indexItems';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { MinusCircle, Search } from 'lucide-react';
+import { Loader2, MinusCircle, Search } from 'lucide-react';
 import { FixedSizeList as List } from 'react-window';
 import TableHeader from './TableHeader';
 import TableRow from './TableRow';
@@ -28,6 +28,7 @@ const SearchResults = () => {
   const [searchResults, setSearchResults] = useState<SearchResultType[]>([]);
   const [sortConfig, setSortConfig] = useState({ key: 'title', direction: 'asc' });
   const [selectedCampus, setSelectedCampus] = useState('');
+  const [loading, setLoading] = useState(true);
   const [listHeight, setListHeight] = useState(500); // Default height for SSR
 
   useEffect(() => {
@@ -48,12 +49,15 @@ const SearchResults = () => {
   }, [sortConfig]);
 
   async function fetchAllItems() {
+    setLoading(true);
     try {
       const response = await searchIndexItems('');
       const results = response.results;
       setSearchResults(sortArray(results ?? []));
     } catch (error) {
       console.error('Failed to fetch all items:', error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -63,12 +67,15 @@ const SearchResults = () => {
     const query = (data.get('query') as string) || '';
     const campusParam = selectedCampus || '';
 
+    setLoading(true);
     try {
       const response = await searchIndexItems(query, campusParam);
       const results = response.results;
       setSearchResults(sortArray(results ?? []));
     } catch (error) {
       console.error('Failed to search index items:', error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -139,8 +146,8 @@ const SearchResults = () => {
               id="query"
               className="bg-white max-w-3xl block flex-1 py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md focus:ring-0 sm:text-sm sm:leading-6"
             />
-            <Button variant="default" type="submit">
-              Search <Search className="w-4 h-4 ml-2" />
+            <Button variant="default" type="submit" disabled={loading}>
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Search <Search className="w-4 h-4 ml-2" /></>}
             </Button>
           </div>
 
