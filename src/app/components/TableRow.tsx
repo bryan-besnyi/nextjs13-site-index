@@ -19,7 +19,7 @@ const TableRow: React.FC<TableRowProps> = ({ item, style }) => (
     className="flex items-center border-b-2 group hover:bg-gray-100 border-b-slate-100"
   >
     <div className="w-1/12 px-6 py-3 whitespace-nowrap">
-      <div className="text-sm font-medium text-gray-900">{item.id}</div>
+      <div className="text-sm font-medium text-gray-900" title={item.id}>{item.id.substring(0, 8)}</div>
     </div>
     <div className="w-4/12 py-3 text-left whitespace-nowrap">
       <div className="flex items-start text-sm font-medium text-gray-900">
