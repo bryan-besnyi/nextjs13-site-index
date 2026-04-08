@@ -71,7 +71,7 @@ export async function searchIndexItems(query: string, campus?: string) {
 export async function getIndexItemById(id: string) {
   try {
     const indexItem = await prisma.indexitem.findUnique({
-      where: { id: Number(id) },
+      where: { id },
       select: {
         id: true,
         title: true,
@@ -127,7 +127,7 @@ export async function createIndexItem(
  * @returns An object containing the updated index item if successful, or an error object if an error occurred.
  */
 export async function updateIndexItem(
-  id: number,
+  id: string,
   title: string,
   url: string,
   letter: string,
@@ -135,7 +135,7 @@ export async function updateIndexItem(
 ) {
   try {
     const updatedItem = await prisma.indexitem.update({
-      where: { id: Number(id) },
+      where: { id },
       data: {
         title: title,
         url: url,
@@ -161,7 +161,7 @@ export async function updateIndexItem(
  * @param id - The ID of the index item to delete.
  * @returns A promise that resolves to an object containing the deleted item or an error.
  */
-export async function deleteIndexItem(id: number) {
+export async function deleteIndexItem(id: string) {
   try {
     const deletedItem = await prisma.indexitem.delete({
       where: { id: id },

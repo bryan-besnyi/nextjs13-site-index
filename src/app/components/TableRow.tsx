@@ -4,7 +4,7 @@ import DeleteButton from './DeleteButton';
 
 type TableRowProps = {
   item: {
-    id: number;
+    id: string;
     title: string;
     letter: string;
     campus: string;
@@ -71,7 +71,7 @@ const TableRow: React.FC<TableRowProps> = ({ item, style }) => (
           Edit Item ✏️
         </Link>
         <div className="transition-opacity duration-100 opacity-0 group-hover:opacity-100">
-          <DeleteButton id={Number(item.id)} itemName={item.title} />
+          <DeleteButton id={item.id} itemName={item.title} />
         </div>
       </div>
     </div>

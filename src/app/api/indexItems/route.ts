@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
 import { prisma } from '@/lib/prisma';
+import { purgeAndWarmCache } from '@/lib/cache';
 import { NextRequest, NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 
@@ -230,13 +231,7 @@ export async function POST(req: NextRequest) {
 
     if (isDev) console.log(`Created new index item: ${JSON.stringify(newIndexItem)}`);
 
-    // Invalidate all related cache keys using pattern matching
-    const cachePattern = `index:${campus}:*`;
-    const keysToInvalidate = await kv.keys(cachePattern);
-    if (keysToInvalidate.length > 0) {
-      await kv.del(...keysToInvalidate);
-      if (isDev) console.log(`Invalidated ${keysToInvalidate.length} cache keys matching: ${cachePattern}`);
-    }
+    await purgeAndWarmCache();
 
     return new NextResponse(JSON.stringify(newIndexItem), {
       status: 200,
@@ -275,18 +270,12 @@ export async function DELETE(req: NextRequest) {
     const id = req.nextUrl.searchParams.get('id');
 
     const deletedItem = await prisma.indexitem.delete({
-      where: { id: Number(id) }
+      where: { id: id! }
     });
 
     if (isDev) console.log(`Deleted index item: ${JSON.stringify(deletedItem)}`);
 
-    // Invalidate all related cache keys using pattern matching
-    const cachePattern = `index:${deletedItem.campus}:*`;
-    const keysToInvalidate = await kv.keys(cachePattern);
-    if (keysToInvalidate.length > 0) {
-      await kv.del(...keysToInvalidate);
-      if (isDev) console.log(`Invalidated ${keysToInvalidate.length} cache keys matching: ${cachePattern}`);
-    }
+    await purgeAndWarmCache();
 
     return new NextResponse(null, {
       status: 204

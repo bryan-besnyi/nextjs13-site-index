@@ -17,7 +17,7 @@ const campusInfo = [
 ];
 
 type SearchResultType = {
-  id: number;
+  id: string;
   title: string;
   letter: string;
   campus: string;
@@ -26,7 +26,7 @@ type SearchResultType = {
 
 const SearchResults = () => {
   const [searchResults, setSearchResults] = useState<SearchResultType[]>([]);
-  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'title', direction: 'asc' });
   const [selectedCampus, setSelectedCampus] = useState('');
   const [listHeight, setListHeight] = useState(500); // Default height for SSR
 
@@ -51,7 +51,7 @@ const SearchResults = () => {
     try {
       const response = await searchIndexItems('');
       const results = response.results;
-      setSearchResults(sortArray(results));
+      setSearchResults(sortArray(results ?? []));
     } catch (error) {
       console.error('Failed to fetch all items:', error);
     }
@@ -79,13 +79,8 @@ const SearchResults = () => {
       let aValue = a[key];
       let bValue = b[key];
 
-      if (key === 'id') {
-        aValue = Number(aValue);
-        bValue = Number(bValue);
-      } else {
-        aValue = aValue?.toString().toLowerCase() ?? '';
-        bValue = bValue?.toString().toLowerCase() ?? '';
-      }
+      aValue = aValue?.toString().toLowerCase() ?? '';
+      bValue = bValue?.toString().toLowerCase() ?? '';
 
       if (aValue < bValue) {
         return sortConfig.direction === 'asc' ? -1 : 1;

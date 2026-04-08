@@ -11,7 +11,7 @@ datasource db {
 }
 
 model indexitem {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   title     String
   letter    String
   url       String

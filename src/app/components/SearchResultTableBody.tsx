@@ -63,7 +63,7 @@ const TableContent = ({ searchResults }) => (
                 Edit Item ✏️
               </Link>
               <div className="transition-opacity duration-100 opacity-0 group-hover:opacity-100">
-                <DeleteButton id={Number(item.id)} itemName={item.title} />
+                <DeleteButton id={item.id} itemName={item.title} />
               </div>
             </div>
           </td>

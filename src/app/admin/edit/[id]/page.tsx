@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
-import { kv } from '@vercel/kv';
+import { purgeAndWarmCache } from '@/lib/cache';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 const campusInfo = [
@@ -20,7 +21,7 @@ export default async function AdminEditPage({
 }: AdminEditPageProps) {
   const { id } = await params;
   const indexItem = await prisma.indexitem.findUnique({
-    where: { id: Number(id) },
+    where: { id },
     select: {
       id: true,
       title: true,
@@ -51,15 +52,8 @@ export default async function AdminEditPage({
       }
     });
 
-    // Invalidate cache for both old and new campus (in case campus changed)
-    const oldCampus = indexItem?.campus || '';
-    const patterns = [`index:${oldCampus}:*`, `index:${campus}:*`];
-    for (const pattern of patterns) {
-      const keys = await kv.keys(pattern);
-      if (keys.length > 0) {
-        await kv.del(...keys);
-      }
-    }
+    await purgeAndWarmCache();
+    revalidatePath(`/letter/${letter}`);
 
     redirect('/admin');
   }

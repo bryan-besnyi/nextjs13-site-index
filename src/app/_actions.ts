@@ -6,7 +6,7 @@ import {
   searchIndexItems as searchFromLib
 } from '../lib/indexItems';
 import { revalidatePath } from 'next/cache';
-import { kv } from '@vercel/kv';
+import { purgeAndWarmCache } from '../lib/cache';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -26,16 +26,15 @@ export async function createIndexItemAction(
     console.error(error);
     return { error };
   } else {
-    // Invalidate cache
-    const keys = await kv.keys(`index:${campus}:*`);
-    if (keys.length > 0) await kv.del(...keys);
+    await purgeAndWarmCache();
+    revalidatePath(`/letter/${letter}`);
     revalidatePath('/indexItems');
     return { newIndexItem };
   }
 }
 
 export async function updateIndexItemAction(
-  id: number,
+  id: string,
   title: string,
   url: string,
   letter: string,
@@ -52,9 +51,8 @@ export async function updateIndexItemAction(
     console.error(error);
     return { error };
   } else {
-    // Invalidate cache
-    const keys = await kv.keys(`index:${campus}:*`);
-    if (keys.length > 0) await kv.del(...keys);
+    await purgeAndWarmCache();
+    revalidatePath(`/letter/${letter}`);
     revalidatePath('/indexItems');
     return { updatedItem };
   }
@@ -62,22 +60,16 @@ export async function updateIndexItemAction(
 
 export async function deleteIndexItemAction(id: string) {
   if (isDev) console.log(`ACTION: Attempting to delete item with ID: ${id}`);
-  const numericId = parseInt(id, 10);
-  if (isNaN(numericId)) {
-    console.error('Invalid ID:', id);
-    throw new Error(`Invalid ID: ${id}`);
-  }
   try {
-    const { deletedItem, error } = await deleteIndexItem(numericId);
+    const { deletedItem, error } = await deleteIndexItem(id);
     if (error) {
       console.error('Error in deleteIndexItemAction:', error);
       throw error;
     }
     if (isDev) console.log('Deleted item in action:', deletedItem);
-    // Invalidate cache
+    await purgeAndWarmCache();
     if (deletedItem) {
-      const keys = await kv.keys(`index:${deletedItem.campus}:*`);
-      if (keys.length > 0) await kv.del(...keys);
+      revalidatePath(`/letter/${deletedItem.letter}`);
     }
     revalidatePath('/admin');
     return { deletedItem };
