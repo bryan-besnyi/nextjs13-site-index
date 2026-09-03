@@ -63,12 +63,12 @@ export async function GET(req: NextRequest) {
       search: (url.searchParams.get('search') || '').trim()
     });
 
-    const allowedOrigin = isTrustedOrigin ? origin : '*';
-
     return new NextResponse(JSON.stringify(indexItems), {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': allowedOrigin,
+        // Always '*': responses are CDN-cached across origins and there is no Vary: Origin,
+        // so a per-origin value would leak one embed's origin to another and break CORS.
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Cache-Control':

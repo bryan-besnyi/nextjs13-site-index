@@ -32,7 +32,8 @@ export async function getIndexItems(q: Query): Promise<IndexItem[]> {
   const items = await prisma.indexitem.findMany({
     where: {
       ...(q.campus && { campus: q.campus }),
-      ...(q.letter && { letter: q.letter }),
+      // Prod has ~18 rows with lowercase letter; must match them like the old `contains` did
+      ...(q.letter && { letter: { equals: q.letter, mode: 'insensitive' } }),
       ...(q.search && { title: { contains: q.search, mode: 'insensitive' } })
     },
     orderBy: { title: 'asc' },
