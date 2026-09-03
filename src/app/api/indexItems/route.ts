@@ -1,9 +1,7 @@
-import { kv } from '@vercel/kv';
-import { prisma } from '@/lib/prisma';
+import { CACHE_TAG, getIndexItems } from '@/lib/cache';
 import { NextRequest, NextResponse } from 'next/server';
 
 const isDev = process.env.NODE_ENV === 'development';
-const CACHE_TTL = 7 * 24 * 60 * 60; // 7 days; writes call invalidateCache(), so TTL is only a safety net
 
 // Trusted origins whitelist
 const TRUSTED_ORIGINS = [
@@ -55,65 +53,17 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Rate limiting is handled by middleware — no per-route limiter needed
+    // Rate limiting is handled by proxy.ts
 
     const url = req.nextUrl;
-    const campus = url.searchParams.get('campus') || '';
-    // Normalize before building the key so ?letter=a and ?letter=A share one cache entry
-    const letter = (url.searchParams.get('letter') || '').toUpperCase();
-    const search = (url.searchParams.get('search') || '').trim();
+    // Normalize so ?letter=a and ?letter=A share one cache entry
+    const indexItems = await getIndexItems({
+      campus: url.searchParams.get('campus') || '',
+      letter: (url.searchParams.get('letter') || '').toUpperCase(),
+      search: (url.searchParams.get('search') || '').trim()
+    });
 
-    const cacheKey = `index:${campus}:${letter}:${search}`;
-
-    if (isDev) console.log(`Attempting to fetch data for key: ${cacheKey}`);
-
-    // Build query conditions up front so they're available for cache miss AND fallback
-    const conditions: {
-      campus?: string;
-      letter?: string;
-      OR?: { title: { contains: string; mode: 'insensitive' } }[];
-    } = {};
-    if (campus) conditions.campus = campus;
-    if (letter) conditions.letter = letter;
-    if (search)
-      conditions.OR = [{ title: { contains: search, mode: 'insensitive' } }];
-
-    const selectFields = {
-      id: true,
-      title: true,
-      letter: true,
-      url: true,
-      campus: true
-    };
-
-    // Try to get data from Vercel KV
-    const cachedData = await kv.get(cacheKey);
-    let indexItems;
-
-    if (cachedData && Array.isArray(cachedData)) {
-      if (isDev) console.log(`Cache hit for key: ${cacheKey} (${cachedData.length} items)`);
-      indexItems = cachedData;
-    } else {
-      if (isDev) console.log(`Cache miss for key: ${cacheKey}`);
-
-      indexItems = await prisma.indexitem.findMany({
-        where: conditions,
-        orderBy: { title: 'asc' },
-        select: selectFields
-      });
-
-      if (isDev) console.log(`Fetched ${indexItems.length} items from database`);
-
-      // Store in KV and track the key for efficient invalidation
-      await Promise.all([
-        kv.set(cacheKey, JSON.stringify(indexItems), { ex: CACHE_TTL }),
-        kv.sadd('index:_keys', cacheKey)
-      ]);
-    }
-
-    // Get origin and check against whitelist
-    const requestOrigin = req.headers.get('origin');
-    const allowedOrigin = requestOrigin && TRUSTED_ORIGINS.includes(requestOrigin) ? requestOrigin : '*';
+    const allowedOrigin = isTrustedOrigin ? origin : '*';
 
     return new NextResponse(JSON.stringify(indexItems), {
       status: 200,
@@ -123,6 +73,7 @@ export async function GET(req: NextRequest) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Cache-Control':
           'public, max-age=3600, s-maxage=3600, stale-while-revalidate',
+        'Vercel-Cache-Tag': CACHE_TAG,
         'Content-Type': 'application/json'
       }
     });
