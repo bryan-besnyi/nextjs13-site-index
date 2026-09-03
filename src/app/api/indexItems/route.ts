@@ -1,16 +1,9 @@
 import { kv } from '@vercel/kv';
 import { prisma } from '@/lib/prisma';
-import { purgeAndWarmCache } from '@/lib/cache';
 import { NextRequest, NextResponse } from 'next/server';
-import { Ratelimit } from '@upstash/ratelimit';
 
 const isDev = process.env.NODE_ENV === 'development';
-const CACHE_TTL = 60 * 60; // 1 hour in seconds
-
-const ratelimit = new Ratelimit({
-  redis: kv,
-  limiter: Ratelimit.slidingWindow(5, '10 s')
-});
+const CACHE_TTL = 7 * 24 * 60 * 60; // 7 days; writes call invalidateCache(), so TTL is only a safety net
 
 // Trusted origins whitelist
 const TRUSTED_ORIGINS = [
@@ -26,16 +19,11 @@ const TRUSTED_ORIGINS = [
 export async function GET(req: NextRequest) {
   try {
     const userAgent = req.headers.get('user-agent') || '';
-    const forwardedFor = req.headers.get('x-forwarded-for');
-    const realIp = req.headers.get('x-real-ip');
-    const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
-    const compositeKey = `${ip}:${userAgent}`;
     const origin = req.headers.get('origin');
     const isTrustedOrigin = origin && TRUSTED_ORIGINS.includes(origin);
 
     // Skip user-agent checks for trusted origins
     if (!isTrustedOrigin) {
-      // Block outdated/suspicious User-Agent
       const blockedUserAgents = [
         'MSIE 7.0',
         'Windows NT 5.1',
@@ -55,12 +43,11 @@ export async function GET(req: NextRequest) {
         'crawler',
         'spider'
       ];
-      // Block empty or suspicious User-Agents
       if (
         !userAgent ||
         blockedUserAgents.some((ua) => userAgent.toLowerCase().includes(ua))
       ) {
-        if (isDev) console.log(`Blocked IP: ${ip}, User-Agent: ${userAgent}`);
+        if (isDev) console.log(`Blocked User-Agent: ${userAgent}`);
         return new NextResponse(JSON.stringify({ error: 'Blocked User-Agent' }), {
           status: 403,
           headers: { 'Content-Type': 'application/json' }
@@ -68,112 +55,60 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Apply rate limiting
-    const { success } = await ratelimit.limit(compositeKey);
-
-    if (!success) {
-      if (isDev) console.log(`Rate limit exceeded for IP: ${ip} and UA: ${userAgent}`);
-      return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    // Rate limiting is handled by middleware — no per-route limiter needed
 
     const url = req.nextUrl;
     const campus = url.searchParams.get('campus') || '';
-    const letter = url.searchParams.get('letter') || '';
-    const search = url.searchParams.get('search') || '';
+    // Normalize before building the key so ?letter=a and ?letter=A share one cache entry
+    const letter = (url.searchParams.get('letter') || '').toUpperCase();
+    const search = (url.searchParams.get('search') || '').trim();
 
     const cacheKey = `index:${campus}:${letter}:${search}`;
 
     if (isDev) console.log(`Attempting to fetch data for key: ${cacheKey}`);
 
+    // Build query conditions up front so they're available for cache miss AND fallback
+    const conditions: {
+      campus?: string;
+      letter?: string;
+      OR?: { title: { contains: string; mode: 'insensitive' } }[];
+    } = {};
+    if (campus) conditions.campus = campus;
+    if (letter) conditions.letter = letter;
+    if (search)
+      conditions.OR = [{ title: { contains: search, mode: 'insensitive' } }];
+
+    const selectFields = {
+      id: true,
+      title: true,
+      letter: true,
+      url: true,
+      campus: true
+    };
+
     // Try to get data from Vercel KV
-    let cachedData = await kv.get(cacheKey);
-    if (isDev) console.log('Raw cached data:', cachedData);
+    const cachedData = await kv.get(cacheKey);
     let indexItems;
 
-    if (!cachedData) {
+    if (cachedData && Array.isArray(cachedData)) {
+      if (isDev) console.log(`Cache hit for key: ${cacheKey} (${cachedData.length} items)`);
+      indexItems = cachedData;
+    } else {
       if (isDev) console.log(`Cache miss for key: ${cacheKey}`);
-
-      const conditions: {
-        campus?: string;
-        letter?: { contains: string; mode: 'insensitive' };
-        OR?: { title: { contains: string; mode: 'insensitive' } }[];
-      } = {};
-      if (campus) conditions.campus = campus;
-      if (letter) conditions.letter = { contains: letter, mode: 'insensitive' };
-      if (search)
-        conditions.OR = [{ title: { contains: search, mode: 'insensitive' } }];
 
       indexItems = await prisma.indexitem.findMany({
         where: conditions,
         orderBy: { title: 'asc' },
-        select: {
-          id: true,
-          title: true,
-          letter: true,
-          url: true,
-          campus: true
-        }
+        select: selectFields
       });
 
       if (isDev) console.log(`Fetched ${indexItems.length} items from database`);
 
-      // Store in Vercel KV
-      await kv.set(cacheKey, JSON.stringify(indexItems), { ex: CACHE_TTL });
-      if (isDev) console.log(`Cached ${indexItems.length} items with key: ${cacheKey}`);
-    } else {
-      if (isDev) console.log(`Cache hit for key: ${cacheKey}`);
-      if (typeof cachedData === 'string') {
-        try {
-          indexItems = JSON.parse(cachedData);
-          if (isDev) console.log(`Retrieved ${indexItems.length} items from cache`);
-        } catch (parseError) {
-          console.error('Error parsing cached data:', parseError);
-          indexItems = await prisma.indexitem.findMany({
-            orderBy: { title: 'asc' },
-            select: {
-              id: true,
-              title: true,
-              letter: true,
-              url: true,
-              campus: true
-            }
-          });
-          console.log(
-            `Fetched ${indexItems.length} items from database after cache parse error`
-          );
-          await kv.set(cacheKey, JSON.stringify(indexItems), { ex: CACHE_TTL });
-          if (isDev) console.log(
-            `Re-cached ${indexItems.length} items with key: ${cacheKey}`
-          );
-        }
-      } else if (Array.isArray(cachedData)) {
-        indexItems = cachedData;
-        console.log(
-          `Retrieved ${indexItems.length} items from cache (already parsed)`
-        );
-      } else {
-        console.error('Unexpected cache data type:', typeof cachedData);
-        indexItems = await prisma.indexitem.findMany({
-          orderBy: { title: 'asc' },
-          select: {
-            id: true,
-            title: true,
-            letter: true,
-            url: true,
-            campus: true
-          }
-        });
-        console.log(
-          `Fetched ${indexItems.length} items from database due to unexpected cache data`
-        );
-        await kv.set(cacheKey, JSON.stringify(indexItems), { ex: CACHE_TTL });
-        console.log(
-          `Re-cached ${indexItems.length} items with key: ${cacheKey}`
-        );
-      }
+      // Store in KV and track the key for efficient invalidation
+      await Promise.all([
+        kv.set(cacheKey, JSON.stringify(indexItems), { ex: CACHE_TTL }),
+        kv.sadd('index:_keys', cacheKey)
+      ]);
     }
 
     // Get origin and check against whitelist
@@ -199,97 +134,5 @@ export async function GET(req: NextRequest) {
         'Content-Type': 'application/json'
       }
     });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    // Apply rate limiting
-    const forwardedFor = req.headers.get('x-forwarded-for');
-    const realIp = req.headers.get('x-real-ip');
-    const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
-    const { success } = await ratelimit.limit(ip);
-
-    if (!success) {
-      if (isDev) console.log(`Rate limit exceeded for IP: ${ip}`);
-      return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const { title, letter, url, campus } = await req.json();
-
-    const newIndexItem = await prisma.indexitem.create({
-      data: {
-        title: title,
-        letter: letter,
-        url: url,
-        campus: campus
-      }
-    });
-
-    if (isDev) console.log(`Created new index item: ${JSON.stringify(newIndexItem)}`);
-
-    await purgeAndWarmCache();
-
-    return new NextResponse(JSON.stringify(newIndexItem), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    console.error('Error creating index item', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Error creating new index item' }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-  }
-}
-
-export async function DELETE(req: NextRequest) {
-  try {
-    // Apply rate limiting
-    const forwardedFor = req.headers.get('x-forwarded-for');
-    const realIp = req.headers.get('x-real-ip');
-    const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
-    const { success } = await ratelimit.limit(ip);
-
-    if (!success) {
-      if (isDev) console.log(`Rate limit exceeded for IP: ${ip}`);
-      return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const id = req.nextUrl.searchParams.get('id');
-
-    const deletedItem = await prisma.indexitem.delete({
-      where: { id: id! }
-    });
-
-    if (isDev) console.log(`Deleted index item: ${JSON.stringify(deletedItem)}`);
-
-    await purgeAndWarmCache();
-
-    return new NextResponse(null, {
-      status: 204
-    });
-  } catch (error) {
-    console.error('Error deleting index item', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Error deleting index item' }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
   }
 }

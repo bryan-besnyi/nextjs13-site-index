@@ -6,7 +6,7 @@ import {
   searchIndexItems as searchFromLib
 } from '../lib/indexItems';
 import { revalidatePath } from 'next/cache';
-import { purgeAndWarmCache } from '../lib/cache';
+import { invalidateCache } from '../lib/cache';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -26,7 +26,7 @@ export async function createIndexItemAction(
     console.error(error);
     return { error };
   } else {
-    await purgeAndWarmCache();
+    await invalidateCache();
     revalidatePath(`/letter/${letter}`);
     revalidatePath('/indexItems');
     return { newIndexItem };
@@ -51,7 +51,7 @@ export async function updateIndexItemAction(
     console.error(error);
     return { error };
   } else {
-    await purgeAndWarmCache();
+    await invalidateCache();
     revalidatePath(`/letter/${letter}`);
     revalidatePath('/indexItems');
     return { updatedItem };
@@ -67,7 +67,7 @@ export async function deleteIndexItemAction(id: string) {
       throw error;
     }
     if (isDev) console.log('Deleted item in action:', deletedItem);
-    await purgeAndWarmCache();
+    await invalidateCache();
     if (deletedItem) {
       revalidatePath(`/letter/${deletedItem.letter}`);
     }

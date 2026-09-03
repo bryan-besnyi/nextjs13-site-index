@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import SubmitButton from '@/app/components/SubmitButton';
-import { purgeAndWarmCache } from '@/lib/cache';
+import { invalidateCache } from '@/lib/cache';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -53,7 +53,7 @@ export default async function AdminEditPage({
       }
     });
 
-    await purgeAndWarmCache();
+    await invalidateCache();
     revalidatePath(`/letter/${letter}`);
 
     redirect('/admin');

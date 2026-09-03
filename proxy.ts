@@ -4,28 +4,31 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { kv } from '@vercel/kv';
 
 const isDev = process.env.NODE_ENV === 'development';
-const REQUESTS_PER_WINDOW = 20;
-const WINDOW_SIZE_IN_SECONDS = 30;
 
-const ratelimit = new Ratelimit({
+// Two rate limit tiers: standard for reads, strict for writes
+const readLimiter = new Ratelimit({
   redis: kv,
-  limiter: Ratelimit.slidingWindow(
-    REQUESTS_PER_WINDOW,
-    `${WINDOW_SIZE_IN_SECONDS} s`
-  )
+  limiter: Ratelimit.slidingWindow(20, '30 s'),
+  prefix: 'rl:read',
 });
 
-export async function middleware(request: NextRequest) {
-  const response = NextResponse.next();
+const writeLimiter = new Ratelimit({
+  redis: kv,
+  limiter: Ratelimit.slidingWindow(5, '10 s'),
+  prefix: 'rl:write',
+});
 
-  // Add security headers
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+export async function proxy(request: NextRequest) {
+  const response = NextResponse.next();
 
   // Prevent indexing of admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
     response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
+
+  // Exempt health check cron from rate limiting
+  if (request.nextUrl.pathname === '/api/health') {
+    return response;
   }
 
   // Apply rate limiting to API and admin routes
@@ -33,11 +36,9 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api') ||
     request.nextUrl.pathname.startsWith('/admin')
   ) {
-    // Try to get the real IP behind a proxy
     const forwardedFor = request.headers.get('x-forwarded-for');
     const realIp = request.headers.get('x-real-ip');
-    const ip =
-      forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
+    const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
 
     if (isDev) console.log(`Request from IP: ${ip}`);
 
@@ -46,10 +47,13 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
+    // Use stricter limiter for write operations (POST/PUT/DELETE)
+    const method = request.method;
+    const isWrite = method === 'POST' || method === 'PUT' || method === 'DELETE';
+    const limiter = isWrite ? writeLimiter : readLimiter;
+
     try {
-      const { success, limit, reset, remaining } = await ratelimit.limit(
-        `${ip}:${request.nextUrl.pathname}`
-      );
+      const { success, limit, reset, remaining } = await limiter.limit(ip);
 
       response.headers.set('X-RateLimit-Limit', limit.toString());
       response.headers.set('X-RateLimit-Remaining', remaining.toString());
