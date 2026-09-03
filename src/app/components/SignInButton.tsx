@@ -15,12 +15,9 @@ const OneLoginSignInButton = () => {
         disabled={loading}
         onClick={() => {
           setLoading(true);
-          signIn('onelogin', {
-            callbackUrl:
-              process.env.NODE_ENV === 'production'
-                ? 'https://site-index.smccd.edu/admin'
-                : 'http://localhost:3000/admin'
-          });
+          // Relative so it works on prod, preview deployments, and localhost.
+          // next-auth rejects cross-origin callbackUrls and falls back to "/".
+          signIn('onelogin', { callbackUrl: '/admin' });
         }}
       >
         {loading ? (
