@@ -31,11 +31,9 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // Apply rate limiting to API and admin routes
-  if (
-    request.nextUrl.pathname.startsWith('/api') ||
-    request.nextUrl.pathname.startsWith('/admin')
-  ) {
+  // Rate limit the API only. Admin pages are session-gated, and <Link>
+  // prefetches of every /admin/edit/[id] row would exhaust the read limit.
+  if (request.nextUrl.pathname.startsWith('/api')) {
     const forwardedFor = request.headers.get('x-forwarded-for');
     const realIp = request.headers.get('x-real-ip');
     const ip = forwardedFor?.split(',')[0] || realIp || '127.0.0.1';
