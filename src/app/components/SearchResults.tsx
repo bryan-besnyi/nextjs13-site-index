@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { searchIndexItems } from '@/lib/indexItems';
+import { searchIndexItems } from '../_actions';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Loader2, MinusCircle, Search } from 'lucide-react';

@@ -3,6 +3,7 @@ import SubmitButton from '@/app/components/SubmitButton';
 import { invalidateCache } from '@/lib/cache';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { requireSession } from '@/app/api/auth/[...nextauth]/options';
 
 const campusInfo = [
   { id: 'collegeOfSanMateo', value: 'College of San Mateo' },
@@ -37,6 +38,7 @@ export default async function AdminEditPage({
 
   async function updateIndexItemAction(formData: FormData): Promise<void> {
     'use server';
+    await requireSession();
 
     const title = formData.get('title') as string;
     const url = formData.get('url') as string;
