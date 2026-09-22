@@ -1,4 +1,5 @@
-'use server';
+// Plain server-side helpers. Not 'use server': that would expose the raw
+// CRUD functions as unauthenticated server actions. Actions live in app/_actions.ts.
 import prisma from './prisma';
 
 export async function getIndexItems() {

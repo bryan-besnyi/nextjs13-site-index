@@ -21,11 +21,6 @@ const writeLimiter = new Ratelimit({
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
-  // Prevent indexing of admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
-  }
-
   // Exempt health check cron from rate limiting
   if (request.nextUrl.pathname === '/api/health') {
     return response;
@@ -64,6 +59,7 @@ export async function proxy(request: NextRequest) {
             status: 429,
             headers: {
               'Content-Type': 'application/json',
+              'Retry-After': Math.max(1, Math.ceil((reset - Date.now()) / 1000)).toString(),
               'X-RateLimit-Limit': limit.toString(),
               'X-RateLimit-Remaining': remaining.toString(),
               'X-RateLimit-Reset': reset.toString()
@@ -81,5 +77,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/admin/:path*']
+  // /admin noindex header is set in next.config.js headers(), not here.
+  matcher: ['/api/:path*']
 };

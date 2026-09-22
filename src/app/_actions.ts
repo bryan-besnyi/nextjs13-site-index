@@ -7,6 +7,7 @@ import {
 } from '../lib/indexItems';
 import { revalidatePath } from 'next/cache';
 import { invalidateCache } from '../lib/cache';
+import { requireSession } from './api/auth/[...nextauth]/options';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -16,6 +17,7 @@ export async function createIndexItemAction(
   letter: string,
   campus: string
 ) {
+  await requireSession();
   const { newIndexItem, error } = await createIndexItem(
     title,
     url,
@@ -40,6 +42,7 @@ export async function updateIndexItemAction(
   letter: string,
   campus: string
 ) {
+  await requireSession();
   const { updatedItem, error } = await updateIndexItem(
     id,
     title,
@@ -59,6 +62,7 @@ export async function updateIndexItemAction(
 }
 
 export async function deleteIndexItemAction(id: string) {
+  await requireSession();
   if (isDev) console.log(`ACTION: Attempting to delete item with ID: ${id}`);
   try {
     const { deletedItem, error } = await deleteIndexItem(id);
@@ -79,12 +83,7 @@ export async function deleteIndexItemAction(id: string) {
   }
 }
 
+// Read-only, same data as the public API, so no session required.
 export async function searchIndexItems(query: string, campus?: string) {
-  // Use the lib function directly instead of fetch (server action can't use relative URLs)
-  const { results, error } = await searchFromLib(query, campus);
-  if (error) {
-    console.error('Search error:', error);
-    return [];
-  }
-  return results || [];
+  return searchFromLib(query, campus);
 }

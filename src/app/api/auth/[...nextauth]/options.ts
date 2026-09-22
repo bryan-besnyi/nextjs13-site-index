@@ -1,4 +1,5 @@
 import { AuthOptions } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import OneLoginProvider from 'next-auth/providers/onelogin';
 
 const authOptions: AuthOptions = {
@@ -42,5 +43,13 @@ const authOptions: AuthOptions = {
   debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET
 };
+
+// Server actions are separate POST endpoints; the admin layout redirect does
+// not run for them, so every write action must call this itself.
+export async function requireSession() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error('Unauthorized');
+  return session;
+}
 
 export default authOptions;
