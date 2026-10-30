@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-scroll-area']
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-scroll-area'],
+    // Workaround for vercel/next.js#100326 (stale CSS after build-cache restore).
+    // Remove after upgrading to Next.js 16.4.4+.
+    turbopackFileSystemCacheForBuild: false
   },
   async headers() {
     return [
